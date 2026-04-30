@@ -3,153 +3,147 @@ import pandas as pd
 import numpy as np
 import pydeck as pdk
 import plotly.express as px
-from sklearn.cluster import DBSCAN
+from sklearn.cluster import KMeans
 from sklearn.ensemble import IsolationForest
+from streamlit_folium import st_folium
+import folium
 
-# CONFIG
-st.set_page_config(page_title="GeoData Platform PRO AI", layout="wide")
+st.set_page_config(page_title="GeoData PRO", layout="wide")
 
+# =========================
 # HEADER
+# =========================
 st.title("🌍 GeoData Platform PRO AI")
-st.caption("Sistema avançado de análise geoespacial com IA + Visualização 3D")
+st.caption("Sistema avançado de análise geoespacial com IA + Dashboard profissional")
 
-# SIDEBAR
-st.sidebar.title("⚙️ Configurações")
-eps = st.sidebar.slider("Sensibilidade Cluster (DBSCAN)", 0.001, 0.05, 0.01)
-contamination = st.sidebar.slider("Sensibilidade Anomalia", 0.01, 0.2, 0.05)
+# =========================
+# SIDEBAR (FILTROS)
+# =========================
+st.sidebar.header("⚙️ Filtros")
 
-st.sidebar.markdown("---")
-st.sidebar.info("CSV deve conter: lat, lon, elevation")
+file = st.sidebar.file_uploader("📂 Envie CSV", type=["csv"])
 
-# UPLOAD
-uploaded_file = st.file_uploader("📂 Envie um CSV", type=["csv"])
+if file:
+    df = pd.read_csv(file)
 
-# DADOS DEMO
-def gerar_dados():
-    np.random.seed(42)
-    lat = -3.1 + np.random.randn(120) * 0.02
-    lon = -60.0 + np.random.randn(120) * 0.02
-    elevation = np.random.randint(50, 400, 120)
-    return pd.DataFrame({"lat": lat, "lon": lon, "elevation": elevation})
+    st.sidebar.success("Dados carregados!")
 
-if uploaded_file is None:
-    st.warning("Usando dados de demonstração 🚀")
-    df = gerar_dados()
-else:
-    df = pd.read_csv(uploaded_file)
+    # =========================
+    # IA - CLUSTER + ANOMALIA
+    # =========================
+    kmeans = KMeans(n_clusters=3, n_init=10)
+    df["cluster"] = kmeans.fit_predict(df[["lat", "lon", "elevation"]])
 
-# VALIDAÇÃO
-if not {"lat", "lon", "elevation"}.issubset(df.columns):
-    st.error("CSV precisa ter: lat, lon, elevation")
-    st.stop()
+    iso = IsolationForest(contamination=0.05)
+    df["anomalia"] = iso.fit_predict(df[["lat", "lon", "elevation"]])
 
-# IA - CLUSTER (DBSCAN)
-db = DBSCAN(eps=eps, min_samples=5)
-df["cluster"] = db.fit_predict(df[["lat", "lon", "elevation"]])
+    # =========================
+    # FILTROS
+    # =========================
+    cluster_filter = st.sidebar.multiselect(
+        "Clusters",
+        options=df["cluster"].unique(),
+        default=df["cluster"].unique()
+    )
 
-# IA - ANOMALIA
-iso = IsolationForest(contamination=contamination)
-df["anomalia"] = iso.fit_predict(df[["lat", "lon", "elevation"]])
+    df = df[df["cluster"].isin(cluster_filter)]
 
-# CORES
-df["color"] = df["anomalia"].apply(lambda x: [255, 0, 0] if x == -1 else [0, 255, 0])
+    # =========================
+    # KPIs (CARDS)
+    # =========================
+    col1, col2, col3, col4 = st.columns(4)
 
-# DASHBOARD
-col1, col2, col3, col4 = st.columns(4)
-col1.metric("📊 Registros", len(df))
-col2.metric("📍 Altitude Média", int(df["elevation"].mean()))
-col3.metric("🧠 Clusters", df["cluster"].nunique())
-col4.metric("🚨 Anomalias", int((df["anomalia"] == -1).sum()))
+    col1.metric("📊 Total", len(df))
+    col2.metric("📈 Altitude média", int(df["elevation"].mean()))
+    col3.metric("🧩 Clusters", df["cluster"].nunique())
+    col4.metric("🚨 Anomalias", len(df[df["anomalia"] == -1]))
 
-# MAPA 3D
-st.subheader("🗺️ Mapa 3D Inteligente")
+    st.divider()
 
-layer = pdk.Layer(
-    "ColumnLayer",
-    data=df,
-    get_position="[lon, lat]",
-    get_elevation="elevation",
-    elevation_scale=5,
-    radius=50,
-    get_fill_color="color",
-    pickable=True,
-)
+    # =========================
+    # MAPA 3D (PYDECK)
+    # =========================
+    st.subheader("🌆 Mapa 3D Inteligente")
 
-view_state = pdk.ViewState(
-    latitude=df["lat"].mean(),
-    longitude=df["lon"].mean(),
-    zoom=12,
-    pitch=45,
-)
+    layer = pdk.Layer(
+        "ColumnLayer",
+        data=df,
+        get_position='[lon, lat]',
+        get_elevation="elevation",
+        elevation_scale=10,
+        radius=30,
+        get_fill_color="[255, 0, 0, 160] if anomalia == -1 else [0, 255, 0, 160]",
+        pickable=True,
+        auto_highlight=True,
+    )
 
-tooltip = {
-    "html": "<b>Lat:</b> {lat}<br><b>Lon:</b> {lon}<br><b>Alt:</b> {elevation}",
-    "style": {"backgroundColor": "black", "color": "white"},
-}
+    view = pdk.ViewState(
+        latitude=df["lat"].mean(),
+        longitude=df["lon"].mean(),
+        zoom=11,
+        pitch=50,
+    )
 
-st.pydeck_chart(pdk.Deck(
-    layers=[layer],
-    initial_view_state=view_state,
-    tooltip=tooltip
-))
+    st.pydeck_chart(pdk.Deck(layers=[layer], initial_view_state=view))
 
-# MAPA 2D (GOOGLE STYLE)
-st.subheader("🌎 Mapa Interativo")
+    # =========================
+    # MAPA GOOGLE STYLE (FOLIUM)
+    # =========================
+    st.subheader("🗺️ Mapa Interativo (Estilo Google Maps)")
 
-mapa = px.scatter_mapbox(
-    df,
-    lat="lat",
-    lon="lon",
-    color="cluster",
-    size="elevation",
-    zoom=12,
-    height=500,
-)
+    m = folium.Map(
+        location=[df["lat"].mean(), df["lon"].mean()],
+        zoom_start=12,
+        tiles="cartodbpositron"
+    )
 
-mapa.update_layout(mapbox_style="carto-positron")
-st.plotly_chart(mapa, use_container_width=True)
+    for _, row in df.iterrows():
+        cor = "red" if row["anomalia"] == -1 else "blue"
+        folium.CircleMarker(
+            location=[row["lat"], row["lon"]],
+            radius=5,
+            color=cor,
+            fill=True
+        ).add_to(m)
 
-# HEATMAP
-st.subheader("🔥 Heatmap")
+    st_folium(m, width=1200, height=500)
 
-heatmap = px.density_mapbox(
-    df,
-    lat="lat",
-    lon="lon",
-    z="elevation",
-    radius=20,
-    zoom=12,
-    mapbox_style="carto-positron",
-)
+    # =========================
+    # GRÁFICOS
+    # =========================
+    st.subheader("📊 Análises")
 
-st.plotly_chart(heatmap, use_container_width=True)
+    colA, colB = st.columns(2)
 
-# GRÁFICOS
-col1, col2 = st.columns(2)
+    fig1 = px.histogram(df, x="elevation", title="Distribuição de Altitude")
+    colA.plotly_chart(fig1, use_container_width=True)
 
-with col1:
-    fig = px.histogram(df, x="elevation", nbins=30, title="Distribuição de Altitude")
-    st.plotly_chart(fig, use_container_width=True)
-
-with col2:
     fig2 = px.scatter_3d(
         df,
-        x="lat",
-        y="lon",
+        x="lon",
+        y="lat",
         z="elevation",
         color="cluster",
-        title="Clusters 3D",
+        title="Clusters 3D"
     )
-    st.plotly_chart(fig2, use_container_width=True)
+    colB.plotly_chart(fig2, use_container_width=True)
 
-# TABELA
-st.subheader("📋 Dados Processados")
-st.dataframe(df, use_container_width=True)
+    # =========================
+    # IA INSIGHTS
+    # =========================
+    st.subheader("🧠 Insights automáticos")
 
-# DOWNLOAD
-csv = df.to_csv(index=False).encode("utf-8")
-st.download_button("⬇️ Baixar dados processados", csv, "dados_processados.csv")
+    st.write(f"""
+    - O sistema detectou **{df['cluster'].nunique()} clusters**
+    - Foram encontradas **{len(df[df['anomalia']==-1])} anomalias**
+    - Altitude média: **{int(df['elevation'].mean())}**
+    """)
 
-# FOOTER
-st.markdown("---")
-st.caption("🚀 Plataforma GeoData com IA | Nível Profissional")
+    # =========================
+    # TABELA
+    # =========================
+    st.subheader("📄 Dados processados")
+    st.dataframe(df, use_container_width=True)
+
+else:
+    st.info("📂 Envie um CSV com: lat, lon, elevation")
