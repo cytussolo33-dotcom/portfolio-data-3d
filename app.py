@@ -13,7 +13,7 @@ except:
     IA = False
 
 # CONFIG
-st.set_page_config(page_title="GeoData PRO AI", layout="wide")
+st.set_page_config(page_title="GeoData Platform PRO AI", layout="wide")
 
 # ESTILO
 st.markdown("""
@@ -33,19 +33,22 @@ st.markdown("Sistema avançado de análise geoespacial com Inteligência Artific
 st.sidebar.title("⚙️ Configurações")
 
 modo = st.sidebar.selectbox(
-    "Modo",
+    "Modo de visualização",
     ["Mapa 3D", "Heatmap", "IA Insights"]
 )
 
-# UPLOAD
-file = st.file_uploader("📂 Envie CSV (lat, lon, elevation)")
+# UPLOAD (CORRIGIDO)
+file = st.file_uploader(
+    "📂 Envie um arquivo CSV (lat, lon, elevation)",
+    type=["csv"]
+)
 
 if file:
     df = pd.read_csv(file)
 
     # VALIDAÇÃO
     if not all(col in df.columns for col in ["lat", "lon", "elevation"]):
-        st.error("CSV precisa de: lat, lon, elevation")
+        st.error("❌ O CSV precisa ter colunas: lat, lon, elevation")
         st.stop()
 
     # LIMPEZA
@@ -54,12 +57,12 @@ if file:
     # FILTRO
     min_alt, max_alt = st.slider(
         "Faixa de altitude",
-        int(df.elevation.min()),
-        int(df.elevation.max()),
-        (int(df.elevation.min()), int(df.elevation.max()))
+        int(df["elevation"].min()),
+        int(df["elevation"].max()),
+        (int(df["elevation"].min()), int(df["elevation"].max()))
     )
 
-    df = df[(df.elevation >= min_alt) & (df.elevation <= max_alt)]
+    df = df[(df["elevation"] >= min_alt) & (df["elevation"] <= max_alt)]
 
     # MÉTRICAS
     col1, col2, col3 = st.columns(3)
@@ -68,11 +71,11 @@ if file:
     col3.metric("Máxima", f"{df.elevation.max():.0f} m")
 
     # =========================
-    # MODO MAPA 3D
+    # MAPA 3D
     # =========================
     if modo == "Mapa 3D":
 
-        st.subheader("🗺️ Mapa 3D")
+        st.subheader("🗺️ Mapa 3D Interativo")
 
         st.pydeck_chart(pdk.Deck(
             map_style='mapbox://styles/mapbox/dark-v10',
@@ -90,7 +93,7 @@ if file:
                     get_elevation='elevation',
                     elevation_scale=50,
                     radius=200,
-                    get_fill_color='[elevation*5, 100, 200]',
+                    get_fill_color='[elevation * 5, 100, 200]',
                     pickable=True,
                 )
             ],
@@ -101,7 +104,7 @@ if file:
     # =========================
     elif modo == "Heatmap":
 
-        st.subheader("🔥 Heatmap")
+        st.subheader("🔥 Heatmap de Densidade")
 
         st.pydeck_chart(pdk.Deck(
             initial_view_state=pdk.ViewState(
@@ -125,16 +128,16 @@ if file:
     # =========================
     elif modo == "IA Insights":
 
-        st.subheader("🤖 Inteligência Artificial")
+        st.subheader("🤖 Análise com Inteligência Artificial")
 
         if IA:
 
-            # KMEANS
+            # CLUSTER
             kmeans = KMeans(n_clusters=3, n_init=10)
             df["cluster"] = kmeans.fit_predict(df[["lat", "lon", "elevation"]])
 
-            # ANOMALIAS
-            iso = IsolationForest(contamination=0.1)
+            # ANOMALIA
+            iso = IsolationForest(contamination=0.1, random_state=42)
             df["anomalia"] = iso.fit_predict(df[["lat", "lon", "elevation"]])
 
             # MAPA
@@ -150,23 +153,23 @@ if file:
                         "ScatterplotLayer",
                         data=df,
                         get_position='[lon, lat]',
-                        get_color='[cluster*80, 100, 200]',
-                        get_radius=100,
+                        get_color='[cluster * 80, 150, 200]',
+                        get_radius=120,
                     )
                 ],
             ))
 
             # INSIGHTS
-            st.markdown("### 📊 Insights automáticos")
+            st.markdown("### 📊 Resultados")
 
-            st.write(f"Clusters identificados: {df.cluster.nunique()}")
-            st.write(f"Anomalias detectadas: {(df.anomalia == -1).sum()}")
+            st.write(f"🔹 Clusters encontrados: {df.cluster.nunique()}")
+            st.write(f"🚨 Anomalias detectadas: {(df.anomalia == -1).sum()}")
 
-            st.write("📈 Cluster com maior altitude média:")
-            st.write(df.groupby("cluster")["elevation"].mean())
+            st.write("📈 Média de altitude por cluster:")
+            st.dataframe(df.groupby("cluster")["elevation"].mean())
 
         else:
-            st.warning("Instale sklearn no requirements.txt")
+            st.error("❌ Biblioteca scikit-learn não instalada")
 
 else:
-    st.info("Envie um CSV para começar 🚀")
+    st.info("📂 Envie um CSV para começar 🚀")
