@@ -1,83 +1,61 @@
 import streamlit as st
-import pandas as pd
 import json
 import os
 
-# -----------------------
-# BANCO DE USUÁRIOS
-# -----------------------
-DB_FILE = "usuarios.json"
-
+# ------------------------
+# CARREGAR USUÁRIOS
+# ------------------------
 def carregar_usuarios():
-    if os.path.exists(DB_FILE):
-        with open(DB_FILE, "r") as f:
-            return json.load(f)
-    return {}
+    if not os.path.exists("users.json"):
+        return {}
+    with open("users.json", "r") as f:
+        return json.load(f)
 
-def salvar_usuarios(usuarios):
-    with open(DB_FILE, "w") as f:
-        json.dump(usuarios, f)
+def salvar_usuarios(users):
+    with open("users.json", "w") as f:
+        json.dump(users, f, indent=4)
 
-usuarios = carregar_usuarios()
+users = carregar_usuarios()
 
-# -----------------------
+# ------------------------
 # LOGIN
-# -----------------------
-st.set_page_config(page_title="Lucro Delivery PRO", layout="centered")
-
+# ------------------------
 if "logado" not in st.session_state:
     st.session_state.logado = False
-    st.session_state.usuario = None
-    st.session_state.pro = False
-
-st.title("🚀 Lucro Delivery")
 
 if not st.session_state.logado:
+    st.title("🔐 Login")
 
-    menu = st.radio("Escolha", ["Login", "Criar conta"])
+    user = st.text_input("Usuário")
+    senha = st.text_input("Senha", type="password")
 
-    if menu == "Login":
-        user = st.text_input("Usuário")
-        senha = st.text_input("Senha", type="password")
+    if st.button("Entrar"):
+        if user in users and users[user]["senha"] == senha:
+            st.session_state.logado = True
+            st.session_state.user = user
+            st.success("Login OK")
+            st.rerun()
+        else:
+            st.error("Login inválido")
 
-        if st.button("Entrar"):
-            if user in usuarios and usuarios[user]["senha"] == senha:
-                st.session_state.logado = True
-                st.session_state.usuario = user
-                st.session_state.pro = usuarios[user]["pro"]
-                st.success("Login realizado!")
-                st.rerun()
-            else:
-                st.error("Login inválido")
-
-    if menu == "Criar conta":
-        new_user = st.text_input("Novo usuário")
-        new_pass = st.text_input("Nova senha", type="password")
-
-        if st.button("Cadastrar"):
-            if new_user in usuarios:
-                st.warning("Usuário já existe")
-            else:
-                usuarios[new_user] = {"senha": new_pass, "pro": False}
-                salvar_usuarios(usuarios)
-                st.success("Conta criada!")
-
-# -----------------------
-# PAINEL LOGADO
-# -----------------------
+# ------------------------
+# APP PRINCIPAL
+# ------------------------
 else:
-    st.success(f"Bem-vindo, {st.session_state.usuario}")
+    st.title("🚀 Lucro Delivery")
+
+    st.success(f"Bem-vindo, {st.session_state.user}")
 
     if st.button("Sair"):
         st.session_state.logado = False
         st.rerun()
 
-    # -----------------------
-    # CONTROLE DE ENTREGAS
-    # -----------------------
+    # ------------------------
+    # CONTROLE
+    # ------------------------
     st.header("📦 Controle de Entregas")
 
-    valor = st.number_input("Valor da entrega (R$)", min_value=0.0)
+    valor = st.number_input("Valor (R$)", min_value=0.0)
     custo = st.number_input("Custo (R$)", min_value=0.0)
 
     if "dados" not in st.session_state:
@@ -91,45 +69,53 @@ else:
             "lucro": lucro
         })
 
+    # ------------------------
+    # RESUMO
+    # ------------------------
     if st.session_state.dados:
-        df = pd.DataFrame(st.session_state.dados)
+        total = sum(d["valor"] for d in st.session_state.dados)
+        lucro_total = sum(d["lucro"] for d in st.session_state.dados)
 
         st.subheader("📊 Resumo")
-        st.write("Total entregas:", len(df))
-        st.write("Faturamento:", df["valor"].sum())
-        st.write("Lucro:", df["lucro"].sum())
+        st.write(f"Faturamento: R$ {total:.2f}")
+        st.write(f"Lucro: R$ {lucro_total:.2f}")
 
-        # PRO libera gráfico
-        if st.session_state.pro:
-            st.line_chart(df["lucro"])
-        else:
-            st.warning("🔒 Gráficos apenas na versão PRO")
+        st.dataframe(st.session_state.dados)
 
-    # -----------------------
-    # PAGAMENTO (SIMULADO)
-    # -----------------------
+    # ------------------------
+    # PRO
+    # ------------------------
     st.header("💎 Versão PRO")
 
-    if st.session_state.pro:
-        st.success("Você já é PRO 🚀")
+    if users[st.session_state.user]["pro"]:
+        st.success("Você é PRO 🎉")
+        st.line_chart([d["lucro"] for d in st.session_state.dados])
     else:
-        if st.button("Pagar R$ 9,90 (simulado)"):
-            usuarios[st.session_state.usuario]["pro"] = True
-            salvar_usuarios(usuarios)
-            st.session_state.pro = True
-            st.success("Pagamento aprovado!")
+        st.warning("Acesso básico")
+
+        if st.button("Pagar R$ 9,90"):
+            # SIMULA PAGAMENTO
+            users[st.session_state.user]["pro"] = True
+            salvar_usuarios(users)
+            st.success("PRO ativado!")
             st.rerun()
 
-    # -----------------------
-    # ADMIN (GERAR LOGINS)
-    # -----------------------
-    if st.session_state.usuario == "admin":
-        st.header("⚙️ Painel Admin")
+    # ------------------------
+    # ADMIN - GERAR LOGIN
+    # ------------------------
+    if st.session_state.user == "admin":
+        st.header("🛠 Gerar login")
 
-        novo_user = st.text_input("Criar usuário")
+        novo_user = st.text_input("Novo usuário")
         nova_senha = st.text_input("Senha do usuário")
 
-        if st.button("Gerar login"):
-            usuarios[novo_user] = {"senha": nova_senha, "pro": False}
-            salvar_usuarios(usuarios)
-            st.success(f"Usuário {novo_user} criado!")
+        if st.button("Criar usuário"):
+            if novo_user in users:
+                st.error("Usuário já existe")
+            else:
+                users[novo_user] = {
+                    "senha": nova_senha,
+                    "pro": False
+                }
+                salvar_usuarios(users)
+                st.success("Usuário criado!")
