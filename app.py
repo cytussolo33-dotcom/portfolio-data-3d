@@ -1,135 +1,146 @@
 import streamlit as st
 import pandas as pd
-import pydeck as pdk
 import numpy as np
+import pydeck as pdk
 import plotly.express as px
-
-# IA
 from sklearn.cluster import KMeans
 from sklearn.ensemble import IsolationForest
 
-# CONFIG
-st.set_page_config(page_title="GeoData Platform PRO AI", layout="wide")
+# ===== CONFIG =====
+st.set_page_config(
+    page_title="GeoData Platform PRO AI",
+    page_icon="🌍",
+    layout="wide"
+)
 
-# ESTILO
+# ===== ESTILO =====
 st.markdown("""
 <style>
-.stApp {
-    background-color: #0e1117;
-    color: white;
-}
+.main {background-color: #0e1117;}
+h1, h2, h3, h4 {color: white;}
 </style>
 """, unsafe_allow_html=True)
 
-# CACHE
-@st.cache_data
-def carregar_dados(arquivo):
-    return pd.read_csv(arquivo)
+# ===== HEADER =====
+st.markdown("""
+# 🌍 GeoData Platform PRO AI
+### Plataforma inteligente de análise geoespacial com IA em tempo real
+""")
 
-# TÍTULO
-st.title("🌍 GeoData Platform PRO AI")
-st.markdown("Sistema avançado de análise geoespacial com Inteligência Artificial")
+st.divider()
 
-# UPLOAD
-arquivo = st.file_uploader("📂 Envie CSV (lat, lon, elevation)", type=["csv"])
+# ===== SIDEBAR =====
+st.sidebar.title("⚙️ Configurações")
 
-if arquivo is not None:
-    df = carregar_dados(arquivo)
+num_clusters = st.sidebar.slider("Clusters (IA)", 2, 6, 3)
+contaminacao = st.sidebar.slider("Sensibilidade de anomalia", 0.01, 0.2, 0.05)
+altura_min, altura_max = st.sidebar.slider("Filtro de altitude", 0, 1000, (0, 500))
 
-    # VALIDAR COLUNAS
-    if not all(col in df.columns for col in ["lat", "lon", "elevation"]):
+# ===== UPLOAD =====
+uploaded_file = st.file_uploader("📂 Envie CSV (lat, lon, elevation)", type=["csv"])
+
+if uploaded_file:
+    df = pd.read_csv(uploaded_file)
+
+    # ===== VALIDAÇÃO =====
+    if not {"lat", "lon", "elevation"}.issubset(df.columns):
         st.error("CSV precisa ter colunas: lat, lon, elevation")
         st.stop()
 
-    # SIDEBAR
-    st.sidebar.header("⚙️ Configurações")
+    # ===== FILTRO =====
+    df = df[(df["elevation"] >= altura_min) & (df["elevation"] <= altura_max)]
 
-    # FILTROS
-    lat_min, lat_max = st.sidebar.slider(
-        "Latitude",
-        float(df.lat.min()),
-        float(df.lat.max()),
-        (float(df.lat.min()), float(df.lat.max()))
-    )
+    # ===== IA: CLUSTER =====
+    kmeans = KMeans(n_clusters=num_clusters, n_init=10)
+    df["cluster"] = kmeans.fit_predict(df[["lat", "lon"]])
 
-    lon_min, lon_max = st.sidebar.slider(
-        "Longitude",
-        float(df.lon.min()),
-        float(df.lon.max()),
-        (float(df.lon.min()), float(df.lon.max()))
-    )
+    # ===== IA: ANOMALIA REAL =====
+    model = IsolationForest(contamination=contaminacao, random_state=42)
+    df["anomaly"] = model.fit_predict(df[["lat", "lon", "elevation"]])
 
-    elev_min, elev_max = st.sidebar.slider(
-        "Altitude",
-        float(df.elevation.min()),
-        float(df.elevation.max()),
-        (float(df.elevation.min()), float(df.elevation.max()))
-    )
+    # ===== CORES =====
+    def get_color(row):
+        if row["anomaly"] == -1:
+            return [255, 0, 0]  # vermelho
+        return [0, 255, 0]  # verde
 
-    # FILTRAR
-    df = df[
-        (df.lat >= lat_min) & (df.lat <= lat_max) &
-        (df.lon >= lon_min) & (df.lon <= lon_max) &
-        (df.elevation >= elev_min) & (df.elevation <= elev_max)
-    ]
+    df["color"] = df.apply(get_color, axis=1)
 
-    # IA - ANOMALIAS
-    model = IsolationForest(contamination=0.1)
-    df["anomalia"] = model.fit_predict(df[["elevation"]])
+    # ===== MÉTRICAS =====
+    col1, col2, col3, col4 = st.columns(4)
 
-    # IA - CLUSTER
-    kmeans = KMeans(n_clusters=3, n_init=10)
-    df["cluster"] = kmeans.fit_predict(df[["elevation"]])
+    col1.metric("Total de pontos", len(df))
+    col2.metric("Altitude média", int(df["elevation"].mean()))
+    col3.metric("Clusters", num_clusters)
+    col4.metric("Anomalias", (df["anomaly"] == -1).sum())
 
-    # CORES
-    df["color"] = df["anomalia"].apply(
-        lambda x: [255, 0, 0] if x == -1 else [0, 255, 0]
-    )
+    st.divider()
 
-    # MÉTRICAS
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Pontos", len(df))
-    col2.metric("Média", f"{df.elevation.mean():.1f} m")
-    col3.metric("Máxima", f"{df.elevation.max():.1f} m")
-
-    # GRÁFICO
-    st.subheader("📊 Distribuição de Altitude")
-    fig = px.histogram(df, x="elevation", nbins=30)
-    st.plotly_chart(fig, use_container_width=True)
-
-    # MAPA 3D
+    # ===== MAPA 3D =====
     st.subheader("🗺️ Mapa 3D Inteligente")
 
     layer = pdk.Layer(
         "ColumnLayer",
         data=df,
-        get_position="[lon, lat]",
+        get_position='[lon, lat]',
         get_elevation="elevation",
-        elevation_scale=10,
-        radius=200,
+        elevation_scale=20,
+        radius=80,
         get_fill_color="color",
         pickable=True,
-        auto_highlight=True,
     )
 
     view_state = pdk.ViewState(
-        latitude=df.lat.mean(),
-        longitude=df.lon.mean(),
+        latitude=df["lat"].mean(),
+        longitude=df["lon"].mean(),
         zoom=10,
         pitch=50,
     )
 
-    deck = pdk.Deck(
-        layers=[layer],
-        initial_view_state=view_state,
-        map_style="mapbox://styles/mapbox/dark-v10"
+    st.pydeck_chart(pdk.Deck(layers=[layer], initial_view_state=view_state))
+
+    st.divider()
+
+    # ===== GRÁFICO =====
+    st.subheader("📊 Distribuição de Altitude")
+
+    fig = px.histogram(
+        df,
+        x="elevation",
+        nbins=25,
+        title="Distribuição de Altitude"
     )
 
-    st.pydeck_chart(deck)
+    fig.update_layout(
+        plot_bgcolor="#0e1117",
+        paper_bgcolor="#0e1117",
+        font=dict(color="white")
+    )
 
-    # TABELA
-    st.subheader("📄 Dados processados")
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.divider()
+
+    # ===== INSIGHTS =====
+    st.subheader("🤖 Insights da IA")
+
+    anomalias = df[df["anomaly"] == -1].shape[0]
+
+    st.info(f"Foram detectadas **{anomalias} anomalias** nos dados.")
+
+    # ===== DOWNLOAD =====
+    st.download_button(
+        label="⬇️ Baixar dados processados",
+        data=df.to_csv(index=False),
+        file_name="dados_processados.csv",
+        mime="text/csv"
+    )
+
+    st.divider()
+
+    # ===== TABELA =====
+    st.subheader("📋 Dados Processados")
     st.dataframe(df)
 
 else:
-    st.info("Envie um CSV para começar 🚀")
+    st.info("👆 Envie um arquivo CSV para começar")
