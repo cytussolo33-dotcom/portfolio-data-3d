@@ -1,92 +1,88 @@
 import streamlit as st
 import pandas as pd
+import os
+from datetime import datetime
 
-st.set_page_config(page_title="Lucro Delivery", layout="wide")
+st.set_page_config(page_title="Lucro Delivery PRO", layout="centered")
 
-# =========================
-# 🔐 LOGIN SIMPLES
-# =========================
-USER = "admin"
-PASS = "1234"
+# ================= LOGIN =================
+usuarios = {
+    "admin": "1234",
+    "cytus": "1234"
+}
 
 if "logado" not in st.session_state:
     st.session_state.logado = False
 
 if not st.session_state.logado:
-    st.title("🚀 Lucro Delivery")
-    st.caption("Descubra quanto você ganha de verdade")
+    st.title("🔐 Lucro Delivery PRO")
 
     user = st.text_input("Usuário")
     password = st.text_input("Senha", type="password")
 
     if st.button("Entrar"):
-        if user == USER and password == PASS:
+        if user in usuarios and usuarios[user] == password:
             st.session_state.logado = True
+            st.session_state.usuario = user
             st.rerun()
         else:
             st.error("Login inválido")
 
-# =========================
-# 📦 SISTEMA PRINCIPAL
-# =========================
-else:
-    st.title("📦 Controle de Entregas")
+    st.stop()
 
-    col1, col2 = st.columns(2)
+# ================= APP =================
 
-    valor = col1.number_input("💰 Valor da entrega (R$)", min_value=0.0)
-    custo = col2.number_input("⛽ Custo (combustível etc)", min_value=0.0)
+st.title("🚀 Controle de Entregas PRO")
 
-    if st.button("➕ Adicionar entrega"):
-        lucro = valor - custo
+arquivo = f"dados_{st.session_state.usuario}.csv"
 
-        if "dados" not in st.session_state:
-            st.session_state.dados = []
+# Criar arquivo se não existir
+if not os.path.exists(arquivo):
+    df = pd.DataFrame(columns=["data", "valor", "custo", "lucro"])
+    df.to_csv(arquivo, index=False)
 
-        st.session_state.dados.append({
-            "Valor": valor,
-            "Custo": custo,
-            "Lucro": lucro
-        })
+df = pd.read_csv(arquivo)
 
-    # =========================
-    # 📊 DADOS
-    # =========================
-    if "dados" in st.session_state and len(st.session_state.dados) > 0:
-        df = pd.DataFrame(st.session_state.dados)
+# INPUTS
+valor = st.number_input("💰 Valor da entrega", min_value=0.0)
+custo = st.number_input("⛽ Custo", min_value=0.0)
 
-        st.subheader("📊 Resumo Geral")
+if st.button("➕ Adicionar entrega"):
+    lucro = valor - custo
+    nova = pd.DataFrame([{
+        "data": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "valor": valor,
+        "custo": custo,
+        "lucro": lucro
+    }])
+    df = pd.concat([df, nova], ignore_index=True)
+    df.to_csv(arquivo, index=False)
+    st.success("Entrega salva!")
+    st.rerun()
 
-        c1, c2, c3 = st.columns(3)
-        c1.metric("📦 Entregas", len(df))
-        c2.metric("💰 Faturamento", f"R$ {df['Valor'].sum():.2f}")
-        c3.metric("🟢 Lucro Total", f"R$ {df['Lucro'].sum():.2f}")
+# ================= MÉTRICAS =================
 
-        st.dataframe(df, use_container_width=True)
+st.subheader("📊 Resumo")
 
-        st.subheader("📈 Evolução do Lucro")
-        st.line_chart(df["Lucro"])
+st.metric("📦 Entregas", len(df))
+st.metric("💰 Faturamento", f"R$ {df['valor'].sum():.2f}")
+st.metric("🟢 Lucro", f"R$ {df['lucro'].sum():.2f}")
 
-    else:
-        st.info("Adicione entregas para ver os resultados")
+# ================= HISTÓRICO =================
 
-    # =========================
-    # 📤 EXPORTAR (PRO)
-    # =========================
-    if "dados" in st.session_state:
-        df = pd.DataFrame(st.session_state.dados)
-        csv = df.to_csv(index=False).encode("utf-8")
+st.subheader("📋 Histórico")
+st.dataframe(df)
 
-        st.download_button(
-            "⬇️ Baixar relatório CSV",
-            csv,
-            "relatorio.csv",
-            "text/csv"
-        )
+# ================= GRÁFICO =================
 
-    # =========================
-    # 🔓 SAIR
-    # =========================
-    if st.button("Sair"):
-        st.session_state.logado = False
-        st.rerun()
+st.subheader("📈 Evolução do Lucro")
+
+if not df.empty:
+    df["acumulado"] = df["lucro"].cumsum()
+    st.line_chart(df["acumulado"])
+
+# ================= SAIR =================
+
+if st.button("🚪 Sair"):
+    st.session_state.logado = False
+    st.rerun()
