@@ -1,6 +1,7 @@
 {
   "admin": {
     "senha": "Cytus@2024#X",
-    "pro": true
+    "pro": true,
+    "role": "admin"
   }
 }
