@@ -5,84 +5,101 @@ from datetime import datetime
 
 st.set_page_config(page_title="Lucro Delivery PRO", layout="centered")
 
-# ================= LOGIN =================
-usuarios = {
-    "admin": "1234",
-    "cytus": "1234"
-}
+# ===== LOGIN SIMPLES =====
+USER = "admin"
+PASS = "1234"
 
 if "logado" not in st.session_state:
     st.session_state.logado = False
 
-if not st.session_state.logado:
-    st.title("🔐 Lucro Delivery PRO")
-
+def login():
+    st.title("🔐 Login - Lucro Delivery")
     user = st.text_input("Usuário")
     password = st.text_input("Senha", type="password")
 
     if st.button("Entrar"):
-        if user in usuarios and usuarios[user] == password:
+        if user == USER and password == PASS:
             st.session_state.logado = True
-            st.session_state.usuario = user
-            st.rerun()
         else:
             st.error("Login inválido")
 
+if not st.session_state.logado:
+    login()
     st.stop()
 
-# ================= APP =================
-
+# ===== TÍTULO =====
 st.title("🚀 Controle de Entregas PRO")
 
-arquivo = f"dados_{st.session_state.usuario}.csv"
+# ===== DADOS =====
+file = "dados.csv"
 
-# Criar arquivo se não existir
-if not os.path.exists(arquivo):
+if os.path.exists(file):
+    df = pd.read_csv(file)
+else:
     df = pd.DataFrame(columns=["data", "valor", "custo", "lucro"])
-    df.to_csv(arquivo, index=False)
 
-df = pd.read_csv(arquivo)
+# ===== INPUT =====
+st.subheader("📦 Nova entrega")
 
-# INPUTS
-valor = st.number_input("💰 Valor da entrega", min_value=0.0)
-custo = st.number_input("⛽ Custo", min_value=0.0)
+valor = st.number_input("💰 Valor da entrega", min_value=0.0, format="%.2f")
+custo = st.number_input("⛽ Custo", min_value=0.0, format="%.2f")
 
 if st.button("➕ Adicionar entrega"):
     lucro = valor - custo
-    nova = pd.DataFrame([{
-        "data": datetime.now().strftime("%Y-%m-%d %H:%M"),
+    nova_linha = pd.DataFrame([{
+        "data": datetime.now().strftime("%d/%m %H:%M"),
         "valor": valor,
         "custo": custo,
         "lucro": lucro
     }])
-    df = pd.concat([df, nova], ignore_index=True)
-    df.to_csv(arquivo, index=False)
-    st.success("Entrega salva!")
-    st.rerun()
 
-# ================= MÉTRICAS =================
+    df = pd.concat([df, nova_linha], ignore_index=True)
+    df.to_csv(file, index=False)
 
+    st.success("Entrega adicionada!")
+
+# ===== RESUMO =====
 st.subheader("📊 Resumo")
 
-st.metric("📦 Entregas", len(df))
-st.metric("💰 Faturamento", f"R$ {df['valor'].sum():.2f}")
-st.metric("🟢 Lucro", f"R$ {df['lucro'].sum():.2f}")
+total_entregas = len(df)
+faturamento = df["valor"].sum()
+lucro_total = df["lucro"].sum()
 
-# ================= HISTÓRICO =================
+col1, col2, col3 = st.columns(3)
+col1.metric("📦 Entregas", total_entregas)
+col2.metric("💰 Faturamento", f"R$ {faturamento:.2f}")
+col3.metric("🟢 Lucro", f"R$ {lucro_total:.2f}")
 
-st.subheader("📋 Histórico")
+# ===== HISTÓRICO =====
+st.subheader("📜 Histórico")
 st.dataframe(df)
 
-# ================= GRÁFICO =================
-
-st.subheader("📈 Evolução do Lucro")
+# ===== GRÁFICO =====
+st.subheader("📈 Evolução do lucro")
 
 if not df.empty:
-    df["acumulado"] = df["lucro"].cumsum()
-    st.line_chart(df["acumulado"])
+    st.line_chart(df["lucro"])
 
-# ================= SAIR =================
+# ===== PLANO PRO =====
+st.subheader("💎 Versão PRO")
 
+st.info("""
+🔥 Vantagens:
+- Salvar histórico
+- Ver gráficos
+- Controle completo
+- Futuras automações
+""")
+
+# ===== PAGAMENTO (SIMULADO) =====
+st.markdown("### 💳 Desbloquear PRO")
+
+if st.button("💰 Pagar R$ 9,90 (Simulação)"):
+    st.success("Pagamento aprovado! (simulado)")
+    st.balloons()
+
+st.caption("💡 Para ganhar dinheiro de verdade, conecte com Stripe ou Mercado Pago")
+
+# ===== LOGOUT =====
 if st.button("🚪 Sair"):
     st.session_state.logado = False
-    st.rerun()
