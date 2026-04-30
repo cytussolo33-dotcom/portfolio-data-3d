@@ -1,14 +1,22 @@
+import streamlit as st
 import mercadopago
-import base64
 
-MP_TOKEN = "SEU_TOKEN_AQUI"
+# 🔑 COLE SEU TOKEN NOVO AQUI
+MP_TOKEN = "APP_USR-COLE_SEU_TOKEN_AQUI"
 
 sdk = mercadopago.SDK(MP_TOKEN)
 
 st.header("💎 Acesso PRO")
 
-if usuario_info.get("pro"):
+# controle simples (evita erro)
+if "pro" not in st.session_state:
+    st.session_state["pro"] = False
+
+# se já pagou
+if st.session_state["pro"]:
     st.success("Você é PRO 🚀")
+
+# se ainda não pagou
 else:
     email = st.text_input("Digite seu e-mail")
 
@@ -35,18 +43,14 @@ else:
 
         st.info("📱 Pague o PIX e depois clique em verificar pagamento")
 
-# =====================
-# VERIFICAR PAGAMENTO
-# =====================
-
+# verificar pagamento
 if "payment_id" in st.session_state:
     if st.button("🔄 Verificar pagamento"):
         result = sdk.payment().get(st.session_state["payment_id"])
         status = result["response"]["status"]
 
         if status == "approved":
-            usuarios[user]["pro"] = True
-            salvar_usuarios(usuarios)
+            st.session_state["pro"] = True
             st.success("Pagamento aprovado! PRO liberado 🚀")
             st.rerun()
         else:
