@@ -1,8 +1,6 @@
-streamlit
-pandas
-numpy
-pydeck
-plotly
-scikit-learn
-folium
-streamlit-folium
+[theme]
+base="dark"
+primaryColor="#00ffcc"
+backgroundColor="#0e1117"
+secondaryBackgroundColor="#1a1f2b"
+textColor="#ffffff"
