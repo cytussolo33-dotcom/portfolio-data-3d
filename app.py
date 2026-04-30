@@ -4,116 +4,129 @@ import numpy as np
 import pydeck as pdk
 import plotly.express as px
 from sklearn.cluster import KMeans
+from sklearn.ensemble import IsolationForest
 
-st.set_page_config(page_title="GeoData Platform PRO", layout="wide")
+# CONFIG
+st.set_page_config(page_title="GeoData Platform PRO AI", layout="wide")
 
-# ------------------ HEADER ------------------
+# HEADER
 st.title("🌍 GeoData Platform PRO AI")
-st.markdown("Sistema avançado de análise geoespacial com IA + Visualização 3D")
+st.caption("Sistema avançado de análise geoespacial com IA + Visualização 3D")
 
-# ------------------ SIDEBAR ------------------
+# SIDEBAR
 st.sidebar.title("⚙️ Configurações")
 
-uploaded_file = st.sidebar.file_uploader("📂 Upload CSV", type=["csv"])
+cluster_n = st.sidebar.slider("Número de Clusters", 2, 10, 3)
+contamination = st.sidebar.slider("Sensibilidade de Anomalia", 0.01, 0.2, 0.05)
 
-map_style_option = st.sidebar.selectbox(
-    "🗺️ Estilo do mapa",
-    ["Google (claro)", "Satélite", "Escuro"]
-)
+st.sidebar.markdown("---")
+st.sidebar.info("Envie um CSV com: lat, lon, elevation")
 
-cluster_n = st.sidebar.slider("🤖 Número de clusters", 2, 6, 3)
+# UPLOAD
+uploaded_file = st.file_uploader("📂 Envie um CSV", type=["csv"])
 
-# Map styles
-map_styles = {
-    "Google (claro)": "mapbox://styles/mapbox/light-v9",
-    "Satélite": "mapbox://styles/mapbox/satellite-v9",
-    "Escuro": "mapbox://styles/mapbox/dark-v10"
-}
+# DEMO DATA
+def gerar_dados():
+    np.random.seed(42)
+    lat = -3.1 + np.random.randn(100) * 0.02
+    lon = -60.0 + np.random.randn(100) * 0.02
+    elevation = np.random.randint(50, 400, 100)
+    return pd.DataFrame({"lat": lat, "lon": lon, "elevation": elevation})
 
-# ------------------ PROCESSAMENTO ------------------
-if uploaded_file:
+if uploaded_file is None:
+    st.warning("Nenhum arquivo enviado — usando dados de demonstração 🚀")
+    df = gerar_dados()
+else:
     df = pd.read_csv(uploaded_file)
 
-    if not all(col in df.columns for col in ["lat", "lon", "elevation"]):
-        st.error("CSV precisa ter colunas: lat, lon, elevation")
-        st.stop()
+# VALIDAÇÃO
+required_cols = {"lat", "lon", "elevation"}
+if not required_cols.issubset(df.columns):
+    st.error("CSV precisa ter colunas: lat, lon, elevation")
+    st.stop()
 
-    # Filtro
-    min_alt, max_alt = st.slider(
-        "Filtro de altitude",
-        float(df["elevation"].min()),
-        float(df["elevation"].max()),
-        (float(df["elevation"].min()), float(df["elevation"].max()))
-    )
+# IA - CLUSTER
+kmeans = KMeans(n_clusters=cluster_n, n_init=10)
+df["cluster"] = kmeans.fit_predict(df[["lat", "lon", "elevation"]])
 
-    df = df[(df["elevation"] >= min_alt) & (df["elevation"] <= max_alt)]
+# IA - ANOMALIA
+iso = IsolationForest(contamination=contamination)
+df["anomalia"] = iso.fit_predict(df[["lat", "lon", "elevation"]])
 
-    # IA - Clusters
-    kmeans = KMeans(n_clusters=cluster_n, n_init=10)
-    df["cluster"] = kmeans.fit_predict(df[["lat", "lon", "elevation"]])
+# CORES
+df["color"] = df["anomalia"].apply(lambda x: [255,0,0] if x == -1 else [0,255,0])
 
-    # Anomalias
-    threshold = df["elevation"].mean() + 2 * df["elevation"].std()
-    df["anomaly"] = np.where(df["elevation"] > threshold, -1, 1)
+# MÉTRICAS
+col1, col2, col3 = st.columns(3)
+col1.metric("📊 Registros", len(df))
+col2.metric("📍 Altitude Média", int(df["elevation"].mean()))
+col3.metric("🚨 Anomalias", int((df["anomalia"] == -1).sum()))
 
-    # Cores inteligentes
-    df["color"] = df["anomaly"].apply(
-        lambda x: [255, 0, 0] if x == -1 else [0, 200, 0]
-    )
+# MAPA 3D
+st.subheader("🗺️ Mapa 3D Inteligente")
 
-    # ------------------ DASHBOARD ------------------
-    col1, col2, col3, col4 = st.columns(4)
+layer = pdk.Layer(
+    "ColumnLayer",
+    data=df,
+    get_position="[lon, lat]",
+    get_elevation="elevation",
+    elevation_scale=5,
+    radius=50,
+    get_fill_color="color",
+    pickable=True,
+)
 
-    col1.metric("📊 Total", len(df))
-    col2.metric("📏 Média Altitude", round(df["elevation"].mean(), 2))
-    col3.metric("📍 Clusters", cluster_n)
-    col4.metric("🚨 Anomalias", (df["anomaly"] == -1).sum())
+view_state = pdk.ViewState(
+    latitude=df["lat"].mean(),
+    longitude=df["lon"].mean(),
+    zoom=12,
+    pitch=45,
+)
 
-    # ------------------ GRÁFICO ------------------
-    st.subheader("📊 Distribuição de Altitude")
-    fig = px.histogram(df, x="elevation", nbins=30)
+st.pydeck_chart(pdk.Deck(layers=[layer], initial_view_state=view_state))
+
+# MAPA ESTILO GOOGLE MAPS (2D)
+st.subheader("🌎 Mapa Interativo (Estilo Google Maps)")
+
+mapa = px.scatter_mapbox(
+    df,
+    lat="lat",
+    lon="lon",
+    color="cluster",
+    size="elevation",
+    zoom=12,
+    height=500,
+)
+
+mapa.update_layout(mapbox_style="open-street-map")
+st.plotly_chart(mapa, use_container_width=True)
+
+# GRÁFICOS
+col1, col2 = st.columns(2)
+
+with col1:
+    fig = px.histogram(df, x="elevation", nbins=30, title="Distribuição de Altitude")
     st.plotly_chart(fig, use_container_width=True)
 
-    # ------------------ MAPA 3D ------------------
-    st.subheader("🗺️ Mapa 3D Inteligente")
-
-    layer = pdk.Layer(
-        "ColumnLayer",
-        data=df,
-        get_position='[lon, lat]',
-        get_elevation="elevation",
-        elevation_scale=40,
-        radius=60,
-        get_fill_color="color",
-        pickable=True,
-        auto_highlight=True,
+with col2:
+    fig2 = px.scatter_3d(
+        df,
+        x="lat",
+        y="lon",
+        z="elevation",
+        color="cluster",
+        title="Clusters 3D",
     )
+    st.plotly_chart(fig2, use_container_width=True)
 
-    view_state = pdk.ViewState(
-        latitude=float(df["lat"].mean()),
-        longitude=float(df["lon"].mean()),
-        zoom=13,
-        pitch=50,
-    )
+# TABELA
+st.subheader("📋 Dados Processados")
+st.dataframe(df, use_container_width=True)
 
-    st.pydeck_chart(pdk.Deck(
-        layers=[layer],
-        initial_view_state=view_state,
-        map_style=map_styles[map_style_option]
-    ))
+# DOWNLOAD
+csv = df.to_csv(index=False).encode("utf-8")
+st.download_button("⬇️ Baixar dados processados", csv, "dados_processados.csv")
 
-    # ------------------ TABELA ------------------
-    st.subheader("📋 Dados processados")
-    st.dataframe(df)
-
-    # ------------------ DOWNLOAD ------------------
-    csv = df.to_csv(index=False).encode('utf-8')
-    st.download_button(
-        "⬇️ Baixar dados processados",
-        csv,
-        "dados_processados.csv",
-        "text/csv"
-    )
-
-else:
-    st.info("📂 Envie um CSV para começar")
+# FOOTER
+st.markdown("---")
+st.caption("🚀 Desenvolvido com Streamlit + IA + Visualização 3D")
