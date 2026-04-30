@@ -1,29 +1,42 @@
-# 📊 Portfólio de Dados Espaciais 3D
+# 🌍 GeoData Platform 3D
 
-Projeto focado em análise e visualização de dados espaciais 3D utilizando Python e técnicas de Inteligência Artificial.
+Plataforma interativa para análise de dados geoespaciais com visualização 3D em tempo real.
 
-## 🚀 Tecnologias utilizadas
+## 🚀 Acesse o projeto
+👉 https://mapa-3d-cytus.streamlit.app
+
+## 📊 Funcionalidades
+
+- Upload de arquivos CSV
+- Filtro por faixa de altitude
+- Visualização 3D interativa (mapa)
+- Métricas automáticas (média, máximo, quantidade)
+- Gráfico de distribuição de altitude
+
+## 🧾 Formato do CSV
+
+O arquivo deve conter:
+
+lat, lon, elevation
+
+Exemplo:
+
+-3.1,-60.0,120  
+-3.2,-60.1,300  
+-3.0,-60.2,450  
+
+## 🛠️ Tecnologias
+
 - Python
+- Streamlit
 - Pandas
-- NumPy
-- Matplotlib / Plotly
-- Jupyter Notebook
-
-## 📁 Estrutura do projeto
-- `portfolio_cytussolo.ipynb` → Análises e visualizações 3D
+- PyDeck
+- Plotly
 
 ## 📌 Objetivo
-Demonstrar habilidades em:
-- Análise de dados espaciais
-- Visualização 3D
-- Manipulação de dados com Python
-- Aplicação de conceitos de IA
 
-## 📈 Próximos passos
-- Adicionar novos datasets
-- Melhorar visualizações
-- Implementar modelos de Machine Learning
+Demonstrar habilidades em análise de dados geoespaciais, visualização 3D e construção de dashboards interativos.
 
-## 👨‍💻 Autor
-Cytussolo# portfolio-data-3d
-Portfólio de Análise de Dados Espaciais 3D com Python, visualização e IA
+## 👤 Autor
+
+Seu Nome
