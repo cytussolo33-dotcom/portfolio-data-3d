@@ -1,9 +1,8 @@
-
-streamlit
-pandas
-numpy
-plotly
-pydeck
-scikit-learn
-folium
-streamlit-folium
+streamlit==1.32.0
+pandas==2.2.2
+numpy==1.26.4
+plotly==5.22.0
+pydeck==0.8.1b0
+scikit-learn==1.4.2
+folium==0.16.0
+streamlit-folium==0.18.0
