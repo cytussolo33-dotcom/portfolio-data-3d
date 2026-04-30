@@ -1,61 +1,68 @@
 import streamlit as st
-import pydeck as pdk
 import pandas as pd
 import numpy as np
+import pydeck as pdk
 
-# Configuração da página
-st.set_page_config(page_title="Plataforma 3D Geoespacial", layout="wide")
+# CONFIG
+st.set_page_config(page_title="Dashboard Geoespacial 3D", layout="wide")
 
-# Título
-st.title("🌍 Plataforma 3D de Análise Geoespacial")
-st.markdown("Visualização interativa de dados espaciais em 3D com Python, Streamlit e PyDeck.")
+st.title("🌍 Plataforma Geoespacial 3D Profissional")
 
-# -------------------------
-# DADOS (simulação melhorada)
-# -------------------------
-@st.cache_data
-def carregar_dados():
-    data = pd.DataFrame({
-        'lat': np.random.uniform(-3.2, -2.9, 300),
-        'lon': np.random.uniform(-60.1, -59.8, 300),
-        'elevation': np.random.uniform(50, 500, 300)
-    })
-    return data
+st.markdown("Análise interativa de dados espaciais com filtros e visualização avançada.")
 
-data = carregar_dados()
+# ===== DADOS REALISTAS (simulados com lógica melhor) =====
+np.random.seed(42)
 
-# -------------------------
-# FILTROS
-# -------------------------
+data = pd.DataFrame({
+    'lat': np.random.uniform(-3.2, -2.9, 500),
+    'lon': np.random.uniform(-60.1, -59.8, 500),
+    'elevation': np.random.uniform(50, 500, 500),
+    'categoria': np.random.choice(['Baixa', 'Média', 'Alta'], 500)
+})
+
+# ===== SIDEBAR (FILTROS) =====
 st.sidebar.header("Filtros")
 
-min_altura = st.sidebar.slider("Altura mínima", 0, 500, 100)
-max_altura = st.sidebar.slider("Altura máxima", 100, 500, 500)
+min_alt = st.sidebar.slider("Altitude mínima", 0, 500, 50)
+categoria = st.sidebar.multiselect(
+    "Categoria",
+    options=data['categoria'].unique(),
+    default=data['categoria'].unique()
+)
 
-data_filtrada = data[
-    (data["elevation"] >= min_altura) &
-    (data["elevation"] <= max_altura)
+# ===== FILTRAGEM =====
+filtered = data[
+    (data['elevation'] >= min_alt) &
+    (data['categoria'].isin(categoria))
 ]
 
-# -------------------------
-# MÉTRICAS
-# -------------------------
-col1, col2 = st.columns(2)
+# ===== MÉTRICAS =====
+col1, col2, col3 = st.columns(3)
 
-col1.metric("Total de pontos", len(data_filtrada))
-col2.metric("Altitude média", int(data_filtrada["elevation"].mean()))
+col1.metric("Total de pontos", len(filtered))
+col2.metric("Altitude média", int(filtered['elevation'].mean()) if len(filtered) > 0 else 0)
+col3.metric("Altitude máxima", int(filtered['elevation'].max()) if len(filtered) > 0 else 0)
 
-# -------------------------
-# MAPA 3D
-# -------------------------
+# ===== COR POR ALTURA =====
+def get_color(elevation):
+    if elevation < 150:
+        return [0, 255, 0]
+    elif elevation < 300:
+        return [255, 165, 0]
+    else:
+        return [255, 0, 0]
+
+filtered['color'] = filtered['elevation'].apply(get_color)
+
+# ===== MAPA 3D =====
 layer = pdk.Layer(
     "ColumnLayer",
-    data=data_filtrada,
+    data=filtered,
     get_position='[lon, lat]',
     get_elevation='elevation',
-    elevation_scale=50,
-    radius=100,
-    get_fill_color='[elevation/2, 100, 200, 180]',
+    get_fill_color='color',
+    elevation_scale=40,
+    radius=80,
     pickable=True,
     extruded=True,
 )
@@ -70,10 +77,13 @@ view_state = pdk.ViewState(
 st.pydeck_chart(pdk.Deck(
     layers=[layer],
     initial_view_state=view_state,
+    map_style='mapbox://styles/mapbox/dark-v10'
 ))
 
-# -------------------------
-# RODAPÉ
-# -------------------------
+# ===== TABELA =====
+st.subheader("Dados filtrados")
+st.dataframe(filtered.head(50))
+
+# ===== RODAPÉ =====
 st.markdown("---")
-st.markdown("Desenvolvido com Python, Streamlit e PyDeck")
+st.markdown("🚀 Projeto desenvolvido para portfólio profissional de Dados Espaciais 3D")
