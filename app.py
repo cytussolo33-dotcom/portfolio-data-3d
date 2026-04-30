@@ -4,12 +4,12 @@ import pydeck as pdk
 import plotly.express as px
 import numpy as np
 
-# tenta importar IA
+# IA (opcional)
 try:
     from sklearn.cluster import KMeans
-    IA_AVAILABLE = True
+    IA_DISPONIVEL = True
 except:
-    IA_AVAILABLE = False
+    IA_DISPONIVEL = False
 
 # CONFIG
 st.set_page_config(page_title="GeoData Platform PRO AI", layout="wide")
@@ -26,7 +26,7 @@ st.markdown("""
 
 # CACHE
 @st.cache_data
-def load_data(file):
+def carregar_dados(file):
     return pd.read_csv(file)
 
 # HEADER
@@ -37,156 +37,117 @@ st.markdown("Plataforma avançada com IA para análise geoespacial 3D")
 st.sidebar.header("⚙️ Configurações")
 
 modo = st.sidebar.selectbox(
-    "Modo",
-    ["3D Column", "Heatmap", "Scatter + IA"]
+    "Modo de visualização",
+    ["Mapa 3D", "Heatmap", "Dispersão + IA"]
 )
 
-usar_exemplo = st.sidebar.checkbox("Usar dados de exemplo")
+# UPLOAD
+uploaded_file = st.file_uploader("📂 Envie um CSV com colunas: lat, lon, elevation", type=["csv"])
 
-# DADOS
-if usar_exemplo:
-    data = {
-        "lat": [-3.119, -3.130, -3.140, -3.150, -3.160],
-        "lon": [-60.021, -60.015, -60.010, -60.005, -60.000],
-        "elevation": [120, 200, 80, 300, 250]
-    }
-    df = pd.DataFrame(data)
-else:
-    uploaded_file = st.file_uploader("📂 Envie CSV", type=["csv"])
-    if uploaded_file:
-        df = load_data(uploaded_file)
-    else:
+if uploaded_file:
+    df = carregar_dados(uploaded_file)
+
+    # VALIDAR
+    if not all(col in df.columns for col in ["lat", "lon", "elevation"]):
+        st.error("CSV precisa ter: lat, lon, elevation")
         st.stop()
 
-# VALIDAÇÃO
-if not all(col in df.columns for col in ["lat", "lon", "elevation"]):
-    st.error("CSV precisa ter: lat, lon, elevation")
-    st.stop()
-
-df = df.dropna()
-
-# FILTROS
-min_alt, max_alt = st.sidebar.slider(
-    "Altitude",
-    int(df.elevation.min()),
-    int(df.elevation.max()),
-    (int(df.elevation.min()), int(df.elevation.max()))
-)
-
-radius = st.sidebar.slider("Tamanho", 50, 500, 200)
-
-df = df[(df.elevation >= min_alt) & (df.elevation <= max_alt)]
-
-# IA (SE DISPONÍVEL)
-if IA_AVAILABLE:
-    n_clusters = st.sidebar.slider("Clusters", 2, 6, 3)
-    coords = df[["lat", "lon"]]
-    kmeans = KMeans(n_clusters=n_clusters, n_init=10)
-    df["cluster"] = kmeans.fit_predict(coords)
-
-    mean = df["elevation"].mean()
-    std = df["elevation"].std()
-    df["anomaly"] = abs(df["elevation"] - mean) > 2 * std
-else:
-    st.warning("IA desativada (sklearn não instalado)")
-    df["cluster"] = 0
-    df["anomaly"] = False
-
-# MÉTRICAS
-col1, col2, col3 = st.columns(3)
-col1.metric("📍 Pontos", len(df))
-col2.metric("📊 Média", f"{df.elevation.mean():.0f} m")
-col3.metric("🏔️ Máxima", f"{df.elevation.max():.0f} m")
-
-# MAPA
-st.subheader("🗺️ Visualização")
-
-view_state = pdk.ViewState(
-    latitude=df["lat"].mean(),
-    longitude=df["lon"].mean(),
-    zoom=4,
-    pitch=60,
-)
-
-layers = []
-
-if modo == "3D Column":
-    layers.append(
-        pdk.Layer(
-            "ColumnLayer",
-            data=df,
-            get_position='[lon, lat]',
-            get_elevation="elevation",
-            elevation_scale=100,
-            radius=radius,
-            get_fill_color='[elevation*3, 50, 200, 180]',
-            extruded=True,
-        )
+    # FILTRO
+    min_alt, max_alt = st.slider(
+        "Faixa de altitude",
+        int(df["elevation"].min()),
+        int(df["elevation"].max()),
+        (int(df["elevation"].min()), int(df["elevation"].max()))
     )
 
-elif modo == "Heatmap":
-    layers.append(
-        pdk.Layer(
-            "HeatmapLayer",
-            data=df,
-            get_position='[lon, lat]',
-            get_weight="elevation",
-        )
-    )
+    df = df[(df["elevation"] >= min_alt) & (df["elevation"] <= max_alt)]
 
-else:
-    layers.append(
-        pdk.Layer(
-            "ScatterplotLayer",
-            data=df,
-            get_position='[lon, lat]',
-            get_color='[cluster * 80, 100, 200]',
-            get_radius=radius,
-        )
-    )
+    radius = st.slider("Tamanho das colunas", 50, 500, 200)
 
-    if IA_AVAILABLE:
-        anomalies = df[df["anomaly"]]
-        layers.append(
-            pdk.Layer(
-                "ScatterplotLayer",
-                data=anomalies,
-                get_position='[lon, lat]',
-                get_color='[255, 0, 0]',
-                get_radius=radius * 1.5,
+    # MÉTRICAS
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Pontos", len(df))
+    col2.metric("Média", f"{df.elevation.mean():.0f} m")
+    col3.metric("Máxima", f"{df.elevation.max():.0f} m")
+
+    # =========================
+    # MODOS
+    # =========================
+
+    if modo == "Mapa 3D":
+        st.subheader("🗺️ Mapa 3D")
+
+        st.pydeck_chart(pdk.Deck(
+            map_style='mapbox://styles/mapbox/dark-v10',
+            initial_view_state=pdk.ViewState(
+                latitude=df['lat'].mean(),
+                longitude=df['lon'].mean(),
+                zoom=10,
+                pitch=50,
+            ),
+            layers=[
+                pdk.Layer(
+                    "ColumnLayer",
+                    data=df,
+                    get_position='[lon, lat]',
+                    get_elevation='elevation',
+                    elevation_scale=50,
+                    radius=radius,
+                    get_fill_color='[elevation * 5, 100, 200, 160]',
+                    pickable=True,
+                )
+            ],
+        ))
+
+    elif modo == "Heatmap":
+        st.subheader("🔥 Heatmap")
+
+        st.pydeck_chart(pdk.Deck(
+            map_style='mapbox://styles/mapbox/dark-v10',
+            initial_view_state=pdk.ViewState(
+                latitude=df['lat'].mean(),
+                longitude=df['lon'].mean(),
+                zoom=10,
+                pitch=40,
+            ),
+            layers=[
+                pdk.Layer(
+                    "HeatmapLayer",
+                    data=df,
+                    get_position='[lon, lat]',
+                    get_weight="elevation",
+                )
+            ],
+        ))
+
+    elif modo == "Dispersão + IA":
+        st.subheader("🧠 Análise com IA")
+
+        if IA_DISPONIVEL:
+            k = st.slider("Número de clusters", 2, 10, 3)
+
+            coords = df[["lat", "lon", "elevation"]]
+
+            kmeans = KMeans(n_clusters=k, n_init=10)
+            df["cluster"] = kmeans.fit_predict(coords)
+
+            fig = px.scatter_3d(
+                df,
+                x="lon",
+                y="lat",
+                z="elevation",
+                color="cluster"
             )
-        )
 
-deck = pdk.Deck(
-    layers=layers,
-    initial_view_state=view_state,
-    map_style="carto-darkmatter",
-    tooltip={"text": "Alt: {elevation} | Cluster: {cluster}"},
-)
+            st.plotly_chart(fig, use_container_width=True)
 
-st.pydeck_chart(deck)
+        else:
+            st.warning("Scikit-learn não instalado")
 
-# INSIGHTS
-if IA_AVAILABLE:
-    st.subheader("🧠 Insights")
+    # GRÁFICO
+    st.subheader("📊 Distribuição")
+    fig = px.histogram(df, x="elevation", nbins=30)
+    st.plotly_chart(fig, use_container_width=True)
 
-    max_cluster = df.groupby("cluster")["elevation"].mean().idxmax()
-    min_cluster = df.groupby("cluster")["elevation"].mean().idxmin()
-
-    st.write(f"🔺 Cluster {max_cluster} maior altitude média")
-    st.write(f"🔻 Cluster {min_cluster} menor altitude média")
-    st.write(f"🚨 Anomalias: {df['anomaly'].sum()}")
-
-# GRÁFICOS
-st.subheader("📊 Análise")
-
-fig = px.histogram(df, x="elevation", nbins=30)
-st.plotly_chart(fig, use_container_width=True)
-
-# DOWNLOAD
-csv = df.to_csv(index=False).encode("utf-8")
-st.download_button("⬇️ Baixar dados", csv, "dados.csv")
-
-# TABELA
-with st.expander("🔍 Ver dados"):
-    st.dataframe(df)
+else:
+    st.info("Envie um CSV para começar 🚀")
