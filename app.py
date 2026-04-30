@@ -33,7 +33,7 @@ def salvar_dados(user, dados):
 # CONFIG
 # ========================
 
-st.set_page_config(page_title="Lucro Delivery PRO", layout="centered")
+st.set_page_config(page_title="Lucro Delivery PRO")
 
 # ========================
 # LOGIN
@@ -54,6 +54,7 @@ if not st.session_state.logado:
         if user in usuarios and usuarios[user]["senha"] == senha:
             st.session_state.logado = True
             st.session_state.usuario = user
+            st.session_state.is_admin = usuarios[user].get("role") == "admin"
             st.success(f"Bem-vindo, {user}")
             st.rerun()
         else:
@@ -66,27 +67,27 @@ if not st.session_state.logado:
 # ========================
 
 user = st.session_state.usuario
-dados = carregar_dados(user)
 usuario_info = usuarios[user]
+dados = carregar_dados(user)
 
 st.title("🚀 Lucro Delivery")
-
 st.success(f"Bem-vindo, {user}")
 
 if st.button("Sair"):
     st.session_state.logado = False
+    st.session_state.is_admin = False
     st.rerun()
 
 # ========================
-# ENTRADAS
+# CONTROLE DE ENTREGAS
 # ========================
 
 st.header("📦 Controle de Entregas")
 
-valor = st.number_input("Valor da entrega (R$)", min_value=0.0)
+valor = st.number_input("Valor (R$)", min_value=0.0)
 custo = st.number_input("Custo (R$)", min_value=0.0)
 
-if st.button("Adicionar entrega"):
+if st.button("Adicionar"):
     lucro = valor - custo
     dados.append({
         "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
@@ -95,7 +96,7 @@ if st.button("Adicionar entrega"):
         "lucro": lucro
     })
     salvar_dados(user, dados)
-    st.success("Entrega adicionada!")
+    st.success("Adicionado!")
     st.rerun()
 
 # ========================
@@ -112,7 +113,6 @@ if dados:
     st.metric("Lucro", f"R$ {df['lucro'].sum():.2f}")
 
     st.dataframe(df)
-
     st.line_chart(df["lucro"])
 else:
     st.info("Sem dados ainda")
@@ -133,23 +133,38 @@ else:
         st.rerun()
 
 # ========================
-# ADMIN (GERAR LOGIN)
+# 🔐 ACESSO AO PAINEL ADMIN
 # ========================
 
+st.header("🔒 Painel Admin")
+
 if usuario_info.get("role") == "admin":
-    st.header("🛠 Gerar login")
 
-    novo_user = st.text_input("Novo usuário")
-    nova_senha = st.text_input("Senha do usuário", type="password")
+    senha_admin = st.text_input("Digite sua senha para acessar o painel", type="password")
 
-    if st.button("Criar usuário"):
-        if novo_user in usuarios:
-            st.error("Usuário já existe")
-        else:
-            usuarios[novo_user] = {
-                "senha": nova_senha,
-                "pro": False,
-                "role": "user"
-            }
-            salvar_usuarios(usuarios)
-            st.success("Usuário criado com sucesso!")
+    if senha_admin == usuario_info["senha"]:
+
+        st.success("Acesso liberado ao painel ADMIN")
+
+        st.subheader("🛠 Gerar login")
+
+        novo_user = st.text_input("Novo usuário")
+        nova_senha = st.text_input("Senha do usuário", type="password")
+
+        if st.button("Criar usuário"):
+            if novo_user in usuarios:
+                st.error("Usuário já existe")
+            else:
+                usuarios[novo_user] = {
+                    "senha": nova_senha,
+                    "pro": False,
+                    "role": "user"
+                }
+                salvar_usuarios(usuarios)
+                st.success("Usuário criado!")
+
+    elif senha_admin:
+        st.error("Senha incorreta")
+
+else:
+    st.info("Área restrita ao administrador")
