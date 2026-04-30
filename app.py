@@ -6,67 +6,90 @@ import pydeck as pdk
 from sklearn.cluster import KMeans
 
 # CONFIG
-st.set_page_config(page_title="GeoData ULTRA++", layout="wide")
+st.set_page_config(page_title="GeoData SaaS", layout="wide")
 
-# LOGIN SIMPLES
+# =========================
+# 🔐 LOGIN SIMPLES
+# =========================
+USUARIO = "admin"
+SENHA = "1234"
+
 if "logado" not in st.session_state:
     st.session_state.logado = False
 
-def login():
-    st.title("🔐 Login")
+def tela_login():
+    st.title("🔐 GeoData Login")
+    st.caption("Acesso ao sistema profissional")
 
     user = st.text_input("Usuário")
-    senha = st.text_input("Senha", type="password")
+    password = st.text_input("Senha", type="password")
 
     if st.button("Entrar"):
-        if user == "admin" and senha == "123":
+        if user == USUARIO and password == SENHA:
             st.session_state.logado = True
+            st.rerun()
         else:
-            st.error("Usuário ou senha inválidos")
+            st.error("Login inválido")
 
+# =========================
+# 📊 APP PRINCIPAL
+# =========================
 def app():
-    st.title("🌍 GeoData ULTRA++")
-    st.caption("Sistema profissional com IA, mapa e dashboard")
 
-    # Upload
+    st.title("🌍 GeoData ULTRA++")
+    st.caption("Plataforma inteligente de análise geoespacial com IA")
+
+    # BOTÃO SAIR
+    if st.button("Sair"):
+        st.session_state.logado = False
+        st.rerun()
+
+    # =========================
+    # 📂 UPLOAD
+    # =========================
     file = st.file_uploader("Envie CSV (lat, lon, valor)", type=["csv"])
 
-    # Dados fake se não tiver arquivo
-    def gerar():
+    def gerar_dados():
         lat = -3.1 + np.random.randn(200) * 0.02
         lon = -60 + np.random.randn(200) * 0.02
-        valor = np.random.randint(1, 100, 200)
+        valor = np.random.randint(10, 100, 200)
         return pd.DataFrame({"lat": lat, "lon": lon, "valor": valor})
 
     if file:
         df = pd.read_csv(file)
     else:
         st.info("Usando dados de exemplo")
-        df = gerar()
+        df = gerar_dados()
 
-    # IA (cluster)
+    # =========================
+    # 🤖 IA (CLUSTER)
+    # =========================
     kmeans = KMeans(n_clusters=3, n_init=10)
     df["cluster"] = kmeans.fit_predict(df[["lat", "lon"]])
 
-    # KPIs
+    # =========================
+    # 📊 KPIs
+    # =========================
     c1, c2, c3 = st.columns(3)
     c1.metric("Pontos", len(df))
     c2.metric("Clusters", df["cluster"].nunique())
-    c3.metric("Média", int(df["valor"].mean()))
+    c3.metric("Média Valor", int(df["valor"].mean()))
 
-    # MAPA 3D (SEM BUG)
-    st.subheader("🌍 Mapa 3D")
+    # =========================
+    # 🌍 MAPA 3D (PRO)
+    # =========================
+    st.subheader("🌍 Mapa 3D Inteligente")
 
     layer = pdk.Layer(
         "ColumnLayer",
         data=df,
         get_position='[lon, lat]',
         get_elevation='valor',
-        elevation_scale=50,
-        radius=50,
-        get_fill_color='[cluster * 80, 100, 200]',
+        elevation_scale=40,
+        radius=60,
+        get_fill_color='[cluster * 80, 200, 150]',
         pickable=True,
-        auto_highlight=True
+        auto_highlight=True,
     )
 
     view = pdk.ViewState(
@@ -82,20 +105,37 @@ def app():
         map_style="mapbox://styles/mapbox/dark-v10"
     ))
 
-    # GRÁFICO
-    st.subheader("📊 Análise")
+    # =========================
+    # 📈 GRÁFICOS
+    # =========================
+    st.subheader("📊 Análise Avançada")
 
-    fig = px.scatter(
-        df,
-        x="lon",
-        y="lat",
-        color="cluster",
-        size="valor"
-    )
-    st.plotly_chart(fig, use_container_width=True)
+    col1, col2 = st.columns(2)
 
-# FLOW
+    fig1 = px.scatter(df, x="lon", y="lat", color="cluster", size="valor")
+    col1.plotly_chart(fig1, use_container_width=True)
+
+    fig2 = px.histogram(df, x="valor", nbins=20)
+    col2.plotly_chart(fig2, use_container_width=True)
+
+    # =========================
+    # 🧠 INSIGHT AUTOMÁTICO
+    # =========================
+    st.subheader("🧠 Insights Inteligentes")
+
+    maior_cluster = df["cluster"].value_counts().idxmax()
+
+    st.success(f"""
+    🔎 Cluster dominante: {maior_cluster}
+
+    📍 Recomendação:
+    Foque nessa região para aumentar resultados.
+    """)
+
+# =========================
+# 🚀 EXECUÇÃO
+# =========================
 if not st.session_state.logado:
-    login()
+    tela_login()
 else:
     app()
