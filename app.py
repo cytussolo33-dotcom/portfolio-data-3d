@@ -1,141 +1,92 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import plotly.express as px
-import pydeck as pdk
-from sklearn.cluster import KMeans
 
-# CONFIG
-st.set_page_config(page_title="GeoData SaaS", layout="wide")
+st.set_page_config(page_title="Lucro Delivery", layout="wide")
 
 # =========================
 # 🔐 LOGIN SIMPLES
 # =========================
-USUARIO = "admin"
-SENHA = "1234"
+USER = "admin"
+PASS = "1234"
 
 if "logado" not in st.session_state:
     st.session_state.logado = False
 
-def tela_login():
-    st.title("🔐 GeoData Login")
-    st.caption("Acesso ao sistema profissional")
+if not st.session_state.logado:
+    st.title("🚀 Lucro Delivery")
+    st.caption("Descubra quanto você ganha de verdade")
 
     user = st.text_input("Usuário")
     password = st.text_input("Senha", type="password")
 
     if st.button("Entrar"):
-        if user == USUARIO and password == SENHA:
+        if user == USER and password == PASS:
             st.session_state.logado = True
             st.rerun()
         else:
             st.error("Login inválido")
 
 # =========================
-# 📊 APP PRINCIPAL
+# 📦 SISTEMA PRINCIPAL
 # =========================
-def app():
-
-    st.title("🌍 GeoData ULTRA++")
-    st.caption("Plataforma inteligente de análise geoespacial com IA")
-
-    # BOTÃO SAIR
-    if st.button("Sair"):
-        st.session_state.logado = False
-        st.rerun()
-
-    # =========================
-    # 📂 UPLOAD
-    # =========================
-    file = st.file_uploader("Envie CSV (lat, lon, valor)", type=["csv"])
-
-    def gerar_dados():
-        lat = -3.1 + np.random.randn(200) * 0.02
-        lon = -60 + np.random.randn(200) * 0.02
-        valor = np.random.randint(10, 100, 200)
-        return pd.DataFrame({"lat": lat, "lon": lon, "valor": valor})
-
-    if file:
-        df = pd.read_csv(file)
-    else:
-        st.info("Usando dados de exemplo")
-        df = gerar_dados()
-
-    # =========================
-    # 🤖 IA (CLUSTER)
-    # =========================
-    kmeans = KMeans(n_clusters=3, n_init=10)
-    df["cluster"] = kmeans.fit_predict(df[["lat", "lon"]])
-
-    # =========================
-    # 📊 KPIs
-    # =========================
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Pontos", len(df))
-    c2.metric("Clusters", df["cluster"].nunique())
-    c3.metric("Média Valor", int(df["valor"].mean()))
-
-    # =========================
-    # 🌍 MAPA 3D (PRO)
-    # =========================
-    st.subheader("🌍 Mapa 3D Inteligente")
-
-    layer = pdk.Layer(
-        "ColumnLayer",
-        data=df,
-        get_position='[lon, lat]',
-        get_elevation='valor',
-        elevation_scale=40,
-        radius=60,
-        get_fill_color='[cluster * 80, 200, 150]',
-        pickable=True,
-        auto_highlight=True,
-    )
-
-    view = pdk.ViewState(
-        latitude=df["lat"].mean(),
-        longitude=df["lon"].mean(),
-        zoom=11,
-        pitch=50
-    )
-
-    st.pydeck_chart(pdk.Deck(
-        layers=[layer],
-        initial_view_state=view,
-        map_style="mapbox://styles/mapbox/dark-v10"
-    ))
-
-    # =========================
-    # 📈 GRÁFICOS
-    # =========================
-    st.subheader("📊 Análise Avançada")
+else:
+    st.title("📦 Controle de Entregas")
 
     col1, col2 = st.columns(2)
 
-    fig1 = px.scatter(df, x="lon", y="lat", color="cluster", size="valor")
-    col1.plotly_chart(fig1, use_container_width=True)
+    valor = col1.number_input("💰 Valor da entrega (R$)", min_value=0.0)
+    custo = col2.number_input("⛽ Custo (combustível etc)", min_value=0.0)
 
-    fig2 = px.histogram(df, x="valor", nbins=20)
-    col2.plotly_chart(fig2, use_container_width=True)
+    if st.button("➕ Adicionar entrega"):
+        lucro = valor - custo
+
+        if "dados" not in st.session_state:
+            st.session_state.dados = []
+
+        st.session_state.dados.append({
+            "Valor": valor,
+            "Custo": custo,
+            "Lucro": lucro
+        })
 
     # =========================
-    # 🧠 INSIGHT AUTOMÁTICO
+    # 📊 DADOS
     # =========================
-    st.subheader("🧠 Insights Inteligentes")
+    if "dados" in st.session_state and len(st.session_state.dados) > 0:
+        df = pd.DataFrame(st.session_state.dados)
 
-    maior_cluster = df["cluster"].value_counts().idxmax()
+        st.subheader("📊 Resumo Geral")
 
-    st.success(f"""
-    🔎 Cluster dominante: {maior_cluster}
+        c1, c2, c3 = st.columns(3)
+        c1.metric("📦 Entregas", len(df))
+        c2.metric("💰 Faturamento", f"R$ {df['Valor'].sum():.2f}")
+        c3.metric("🟢 Lucro Total", f"R$ {df['Lucro'].sum():.2f}")
 
-    📍 Recomendação:
-    Foque nessa região para aumentar resultados.
-    """)
+        st.dataframe(df, use_container_width=True)
 
-# =========================
-# 🚀 EXECUÇÃO
-# =========================
-if not st.session_state.logado:
-    tela_login()
-else:
-    app()
+        st.subheader("📈 Evolução do Lucro")
+        st.line_chart(df["Lucro"])
+
+    else:
+        st.info("Adicione entregas para ver os resultados")
+
+    # =========================
+    # 📤 EXPORTAR (PRO)
+    # =========================
+    if "dados" in st.session_state:
+        df = pd.DataFrame(st.session_state.dados)
+        csv = df.to_csv(index=False).encode("utf-8")
+
+        st.download_button(
+            "⬇️ Baixar relatório CSV",
+            csv,
+            "relatorio.csv",
+            "text/csv"
+        )
+
+    # =========================
+    # 🔓 SAIR
+    # =========================
+    if st.button("Sair"):
+        st.session_state.logado = False
+        st.rerun()
