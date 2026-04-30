@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import pydeck as pdk
 import plotly.express as px
-from sklearn.cluster import KMeans
+from sklearn.cluster import DBSCAN
 from sklearn.ensemble import IsolationForest
 
 # CONFIG
@@ -15,52 +15,51 @@ st.caption("Sistema avançado de análise geoespacial com IA + Visualização 3D
 
 # SIDEBAR
 st.sidebar.title("⚙️ Configurações")
-
-cluster_n = st.sidebar.slider("Número de Clusters", 2, 10, 3)
-contamination = st.sidebar.slider("Sensibilidade de Anomalia", 0.01, 0.2, 0.05)
+eps = st.sidebar.slider("Sensibilidade Cluster (DBSCAN)", 0.001, 0.05, 0.01)
+contamination = st.sidebar.slider("Sensibilidade Anomalia", 0.01, 0.2, 0.05)
 
 st.sidebar.markdown("---")
-st.sidebar.info("Envie um CSV com: lat, lon, elevation")
+st.sidebar.info("CSV deve conter: lat, lon, elevation")
 
 # UPLOAD
 uploaded_file = st.file_uploader("📂 Envie um CSV", type=["csv"])
 
-# DEMO DATA
+# DADOS DEMO
 def gerar_dados():
     np.random.seed(42)
-    lat = -3.1 + np.random.randn(100) * 0.02
-    lon = -60.0 + np.random.randn(100) * 0.02
-    elevation = np.random.randint(50, 400, 100)
+    lat = -3.1 + np.random.randn(120) * 0.02
+    lon = -60.0 + np.random.randn(120) * 0.02
+    elevation = np.random.randint(50, 400, 120)
     return pd.DataFrame({"lat": lat, "lon": lon, "elevation": elevation})
 
 if uploaded_file is None:
-    st.warning("Nenhum arquivo enviado — usando dados de demonstração 🚀")
+    st.warning("Usando dados de demonstração 🚀")
     df = gerar_dados()
 else:
     df = pd.read_csv(uploaded_file)
 
 # VALIDAÇÃO
-required_cols = {"lat", "lon", "elevation"}
-if not required_cols.issubset(df.columns):
-    st.error("CSV precisa ter colunas: lat, lon, elevation")
+if not {"lat", "lon", "elevation"}.issubset(df.columns):
+    st.error("CSV precisa ter: lat, lon, elevation")
     st.stop()
 
-# IA - CLUSTER
-kmeans = KMeans(n_clusters=cluster_n, n_init=10)
-df["cluster"] = kmeans.fit_predict(df[["lat", "lon", "elevation"]])
+# IA - CLUSTER (DBSCAN)
+db = DBSCAN(eps=eps, min_samples=5)
+df["cluster"] = db.fit_predict(df[["lat", "lon", "elevation"]])
 
 # IA - ANOMALIA
 iso = IsolationForest(contamination=contamination)
 df["anomalia"] = iso.fit_predict(df[["lat", "lon", "elevation"]])
 
 # CORES
-df["color"] = df["anomalia"].apply(lambda x: [255,0,0] if x == -1 else [0,255,0])
+df["color"] = df["anomalia"].apply(lambda x: [255, 0, 0] if x == -1 else [0, 255, 0])
 
-# MÉTRICAS
-col1, col2, col3 = st.columns(3)
+# DASHBOARD
+col1, col2, col3, col4 = st.columns(4)
 col1.metric("📊 Registros", len(df))
 col2.metric("📍 Altitude Média", int(df["elevation"].mean()))
-col3.metric("🚨 Anomalias", int((df["anomalia"] == -1).sum()))
+col3.metric("🧠 Clusters", df["cluster"].nunique())
+col4.metric("🚨 Anomalias", int((df["anomalia"] == -1).sum()))
 
 # MAPA 3D
 st.subheader("🗺️ Mapa 3D Inteligente")
@@ -83,10 +82,19 @@ view_state = pdk.ViewState(
     pitch=45,
 )
 
-st.pydeck_chart(pdk.Deck(layers=[layer], initial_view_state=view_state))
+tooltip = {
+    "html": "<b>Lat:</b> {lat}<br><b>Lon:</b> {lon}<br><b>Alt:</b> {elevation}",
+    "style": {"backgroundColor": "black", "color": "white"},
+}
 
-# MAPA ESTILO GOOGLE MAPS (2D)
-st.subheader("🌎 Mapa Interativo (Estilo Google Maps)")
+st.pydeck_chart(pdk.Deck(
+    layers=[layer],
+    initial_view_state=view_state,
+    tooltip=tooltip
+))
+
+# MAPA 2D (GOOGLE STYLE)
+st.subheader("🌎 Mapa Interativo")
 
 mapa = px.scatter_mapbox(
     df,
@@ -98,8 +106,23 @@ mapa = px.scatter_mapbox(
     height=500,
 )
 
-mapa.update_layout(mapbox_style="open-street-map")
+mapa.update_layout(mapbox_style="carto-positron")
 st.plotly_chart(mapa, use_container_width=True)
+
+# HEATMAP
+st.subheader("🔥 Heatmap")
+
+heatmap = px.density_mapbox(
+    df,
+    lat="lat",
+    lon="lon",
+    z="elevation",
+    radius=20,
+    zoom=12,
+    mapbox_style="carto-positron",
+)
+
+st.plotly_chart(heatmap, use_container_width=True)
 
 # GRÁFICOS
 col1, col2 = st.columns(2)
@@ -129,4 +152,4 @@ st.download_button("⬇️ Baixar dados processados", csv, "dados_processados.cs
 
 # FOOTER
 st.markdown("---")
-st.caption("🚀 Desenvolvido com Streamlit + IA + Visualização 3D")
+st.caption("🚀 Plataforma GeoData com IA | Nível Profissional")
