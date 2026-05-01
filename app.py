@@ -2,14 +2,13 @@ import streamlit as st
 import mercadopago
 
 # ==============================
-# CONFIG (SEGURO)
+# CONFIG
 # ==============================
 ACCESS_TOKEN = st.secrets["MP_TOKEN"]
-
 sdk = mercadopago.SDK(ACCESS_TOKEN)
 
 # ==============================
-# SESSION STATE
+# SESSION
 # ==============================
 if "pro" not in st.session_state:
     st.session_state["pro"] = False
@@ -20,95 +19,76 @@ if "payment_id" not in st.session_state:
 # ==============================
 # FUNÇÕES
 # ==============================
-def criar_pagamento():
+def criar_pagamento(email):
     payment_data = {
         "transaction_amount": 9.90,
-        "description": "Entregas PRO - Versão Premium",
+        "description": "Entregas PRO",
         "payment_method_id": "pix",
-        "payer": {
-            "email": "seuemailreal@gmail.com"
-        }
+        "payer": {"email": email}
     }
 
     response = sdk.payment().create(payment_data)
-
-    # 🛡️ proteção contra erro
-    if "response" in response:
-        return response["response"]
-    else:
-        return response
+    return response.get("response", response)
 
 
 def verificar_pagamento(payment_id):
     result = sdk.payment().get(payment_id)
-
-    if "response" in result:
-        return result["response"]
-    return result
+    return result.get("response", result)
 
 # ==============================
-# UI
+# LOGIN SIMPLES
 # ==============================
 st.title("📦 Entregas PRO")
-st.caption("Controle suas entregas e maximize seu lucro 💰")
 
-# RESUMO (simples)
-st.subheader("📊 Resumo")
-st.write("💰 Total: R$ 200.00")
-st.write("💸 Custos: R$ 30.00")
-st.write("🟢 Lucro: R$ 170.00")
+email = st.text_input("📧 Seu email")
 
-st.divider()
+if not email:
+    st.warning("Digite seu email para continuar")
+    st.stop()
 
 # ==============================
-# PRO
+# PRO STATUS
 # ==============================
-st.subheader("💎 Versão PRO")
+st.subheader("💎 Plano PRO")
 
 if st.session_state["pro"]:
-    st.success("🚀 Você é PRO!")
-else:
-    st.warning("⚠️ Plano grátis limitado a 5 entregas")
+    st.success("🚀 PRO ativo")
 
+else:
+    st.warning("Plano grátis limitado")
+
+    # GERAR PAGAMENTO
     if st.button("💳 Virar PRO (R$9,90)"):
-        data = criar_pagamento()
+        data = criar_pagamento(email)
 
         if "id" not in data:
-            st.error("Erro ao gerar pagamento 😢")
+            st.error("Erro ao gerar pagamento")
             st.write(data)
         else:
             st.session_state["payment_id"] = data["id"]
 
             st.success("Pagamento gerado!")
 
-            # 📲 QR PIX
             try:
-                dados = data["point_of_interaction"]["transaction_data"]
+                td = data["point_of_interaction"]["transaction_data"]
 
                 st.subheader("📲 Pague com PIX")
-                st.image(f"data:image/png;base64,{dados['qr_code_base64']}")
-                st.code(dados["qr_code"])
+                st.image(f"data:image/png;base64,{td['qr_code_base64']}")
+                st.code(td["qr_code"])
             except:
                 st.warning("QR não disponível")
 
-            # 🔗 Link
-            try:
-                link = data["transaction_details"]["external_resource_url"]
-                st.write("🔗 Link de pagamento:")
-                st.write(link)
-            except:
-                pass
-
 # ==============================
-# VERIFICAR PAGAMENTO
+# VERIFICAÇÃO AUTOMÁTICA (SIMPLES)
 # ==============================
 if st.session_state["payment_id"]:
-    if st.button("✅ Já paguei (verificar)"):
-        status = verificar_pagamento(st.session_state["payment_id"])
 
-        if status.get("status") == "approved":
-            st.success("🎉 PRO ativado!")
-            st.session_state["pro"] = True
-            st.rerun()
-        else:
-            st.warning(f"Status: {status.get('status')}")
+    status = verificar_pagamento(st.session_state["payment_id"])
+
+    if status.get("status") == "approved":
+        st.session_state["pro"] = True
+        st.success("🎉 Pagamento aprovado! PRO liberado!")
+        st.rerun()
+
+    else:
+        st.info(f"⏳ Aguardando pagamento... ({status.get('status')})")
