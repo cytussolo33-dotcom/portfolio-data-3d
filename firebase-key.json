@@ -1,9 +1,9 @@
 {
   "type": "service_account",
-  "project_id": "portfolio-data-3d",
-  "private_key_id": "a1b2c3...",
+  "project_id": "SEU-PROJETO-REAL",
+  "private_key_id": "abc123...",
   "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBg...\n-----END PRIVATE KEY-----\n",
-  "client_email": "firebase-adminsdk-xxxxx@portfolio-data-3d.iam.gserviceaccount.com",
+  "client_email": "firebase-adminsdk-xxxx@SEU-PROJETO.iam.gserviceaccount.com",
   "client_id": "1234567890",
   ...
 }
