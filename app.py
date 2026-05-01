@@ -6,7 +6,7 @@ from firebase_admin import credentials, firestore
 # =========================
 # 🔑 MERCADO PAGO
 # =========================
-MP_TOKEN = "APP_USR-3208236820348419-043015-a94d2bb3e00c239cf241711284a86683-1591849347"
+MP_TOKEN = "APP_USR-1242015591184372-050107-84b5b8d37e75ef490dfea62682ca2479-1591849347"
 sdk = mercadopago.SDK(MP_TOKEN)
 
 # =========================
