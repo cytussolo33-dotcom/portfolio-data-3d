@@ -1,7 +1,8 @@
 {
-  "admin": {
-    "senha": "Cytus@2024#X",
-    "pro": true,
-    "role": "admin"
-  }
+  "type": "service_account",
+  "project_id": "nome-real-do-projeto",
+  "private_key_id": "xxxxxxxx",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEv...\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-xxxxx@seu-projeto.iam.gserviceaccount.com",
+  ...
 }
