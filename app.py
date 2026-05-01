@@ -1,94 +1,116 @@
 import streamlit as st
 import mercadopago
+import firebase_admin
+from firebase_admin import credentials, firestore
+import json
+import hashlib
 
 # ==============================
 # CONFIG
 # ==============================
 ACCESS_TOKEN = st.secrets["MP_TOKEN"]
+WEBHOOK_URL = st.secrets["WEBHOOK_URL"]
+
 sdk = mercadopago.SDK(ACCESS_TOKEN)
+
+# ==============================
+# FIREBASE
+# ==============================
+if not firebase_admin._apps:
+    cred = credentials.Certificate(json.loads(st.secrets["firebase_key"]))
+    firebase_admin.initialize_app(cred)
+
+db = firestore.client()
+
+# ==============================
+# SEGURANÇA
+# ==============================
+def hash_senha(senha):
+    return hashlib.sha256(senha.encode()).hexdigest()
 
 # ==============================
 # SESSION
 # ==============================
+if "logado" not in st.session_state:
+    st.session_state["logado"] = False
+
+if "email" not in st.session_state:
+    st.session_state["email"] = None
+
 if "pro" not in st.session_state:
     st.session_state["pro"] = False
 
-if "payment_id" not in st.session_state:
-    st.session_state["payment_id"] = None
-
 # ==============================
-# FUNÇÕES
+# LOGIN
 # ==============================
-def criar_pagamento(email):
-    payment_data = {
-        "transaction_amount": 9.90,
-        "description": "Entregas PRO",
-        "payment_method_id": "pix",
-        "payer": {"email": email}
-    }
+st.title("💰 SaaS Entregas PRO")
 
-    response = sdk.payment().create(payment_data)
-    return response.get("response", response)
+email = st.text_input("Email")
+senha = st.text_input("Senha", type="password")
 
+if st.button("Entrar / Criar conta"):
 
-def verificar_pagamento(payment_id):
-    result = sdk.payment().get(payment_id)
-    return result.get("response", result)
+    user_ref = db.collection("users").document(email)
+    user = user_ref.get()
 
-# ==============================
-# UI
-# ==============================
-st.title("📦 Entregas PRO")
+    if user.exists:
+        data = user.to_dict()
 
-email = st.text_input("📧 Seu email")
-
-if not email:
-    st.warning("Digite seu email para continuar")
-    st.stop()
-
-# ==============================
-# PRO STATUS
-# ==============================
-st.subheader("💎 Plano PRO")
-
-if st.session_state["pro"]:
-    st.success("🚀 PRO ativo")
-
-else:
-    st.warning("Plano grátis limitado")
-
-    # GERAR PAGAMENTO
-    if st.button("💳 Virar PRO (R$9,90)"):
-        data = criar_pagamento(email)
-
-        if "id" not in data:
-            st.error("Erro ao gerar pagamento")
-            st.write(data)
+        if data["senha"] == hash_senha(senha):
+            st.session_state["logado"] = True
+            st.session_state["email"] = email
+            st.session_state["pro"] = data.get("pro", False)
+            st.success("Login feito!")
         else:
-            st.session_state["payment_id"] = data["id"]
-
-            st.success("Pagamento gerado!")
-
-            try:
-                td = data["point_of_interaction"]["transaction_data"]
-
-                st.subheader("📲 Pague com PIX")
-                st.image(f"data:image/png;base64,{td['qr_code_base64']}")
-                st.code(td["qr_code"])
-            except:
-                st.warning("QR não disponível")
+            st.error("Senha incorreta")
+    else:
+        user_ref.set({
+            "senha": hash_senha(senha),
+            "pro": False
+        })
+        st.success("Conta criada!")
 
 # ==============================
-# VERIFICAÇÃO AUTOMÁTICA
+# AREA LOGADA
 # ==============================
-if st.session_state["payment_id"]:
+if st.session_state["logado"]:
 
-    status = verificar_pagamento(st.session_state["payment_id"])
+    st.write(f"👤 {st.session_state['email']}")
 
-    if status.get("status") == "approved":
-        st.session_state["pro"] = True
-        st.success("🎉 Pagamento aprovado! PRO liberado!")
-        st.rerun()
+    # sempre busca status atualizado
+    user = db.collection("users").document(st.session_state["email"]).get()
+    if user.exists:
+        st.session_state["pro"] = user.to_dict().get("pro", False)
+
+    if st.session_state["pro"]:
+        st.success("🚀 PRO ativo")
+
+        st.subheader("📊 Painel")
+        st.write("💰 Total: R$ 200")
+        st.write("💸 Custos: R$ 30")
+        st.write("🟢 Lucro: R$ 170")
 
     else:
-        st.info(f"⏳ Aguardando pagamento... ({status.get('status')})")
+        st.warning("Plano grátis limitado")
+
+        if st.button("💳 Virar PRO"):
+
+            preference = {
+                "items": [
+                    {
+                        "title": "Plano PRO",
+                        "quantity": 1,
+                        "unit_price": 9.90
+                    }
+                ],
+                "payer": {
+                    "email": st.session_state["email"]
+                },
+                "notification_url": WEBHOOK_URL
+            }
+
+            res = sdk.preference().create(preference)
+            data = res["response"]
+
+            st.link_button("💳 Pagar agora", data["init_point"])
+            st.info("Após pagar, o acesso será liberado automaticamente.")
