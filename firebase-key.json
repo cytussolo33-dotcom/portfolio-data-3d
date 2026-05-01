@@ -1,9 +1,12 @@
 {
   "type": "service_account",
-  "project_id": "SEU-PROJETO-REAL",
+  "project_id": "meu-projeto-real",
   "private_key_id": "abc123...",
-  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBg...\n-----END PRIVATE KEY-----\n",
-  "client_email": "firebase-adminsdk-xxxx@SEU-PROJETO.iam.gserviceaccount.com",
-  "client_id": "1234567890",
-  ...
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEv...\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-xxxx@meu-projeto.iam.gserviceaccount.com",
+  "client_id": "123456789",
+  "auth_uri": "...",
+  "token_uri": "...",
+  "auth_provider_x509_cert_url": "...",
+  "client_x509_cert_url": "..."
 }
