@@ -1,50 +1,29 @@
 import streamlit as st
 import mercadopago
-import firebase_admin
-from firebase_admin import credentials, firestore
 
 # =========================
 # 🔑 MERCADO PAGO
 # =========================
-MP_TOKEN = "APP_USR-1242015591184372-050107-84b5b8d37e75ef490dfea62682ca2479-1591849347"
+MP_TOKEN = "SEU_TOKEN_AQUI"  # ⚠️ troca depois
 sdk = mercadopago.SDK(MP_TOKEN)
-
-# =========================
-# 🔥 FIREBASE
-# =========================
-if not firebase_admin._apps:
-    cred = credentials.Certificate("firebase_key.json")
-    firebase_admin.initialize_app(cred)
-
-db = firestore.client()
 
 st.title("💎 Acesso PRO")
 
 # =========================
-# 🔐 LOGIN
+# 🔐 LOGIN SIMPLES (LOCAL)
 # =========================
+if "logado" not in st.session_state:
+    st.session_state["logado"] = False
+    st.session_state["pro"] = False
+
 email = st.text_input("Email")
 senha = st.text_input("Senha", type="password")
 
 if st.button("Entrar / Criar"):
-    user_ref = db.collection("users").document(email)
-    user = user_ref.get()
-
-    if user.exists:
-        data = user.to_dict()
-        if data["senha"] == senha:
-            st.session_state["logado"] = True
-            st.session_state["email"] = email
-            st.session_state["pro"] = data.get("pro", False)
-            st.success("Login feito!")
-        else:
-            st.error("Senha errada")
-    else:
-        user_ref.set({
-            "senha": senha,
-            "pro": False
-        })
-        st.success("Conta criada!")
+    # login fake (sem banco)
+    st.session_state["logado"] = True
+    st.session_state["email"] = email
+    st.success("Login feito!")
 
 # =========================
 # 💎 AREA PRO
@@ -86,10 +65,6 @@ if st.session_state.get("logado"):
             status = result["response"]["status"]
 
             if status == "approved":
-                db.collection("users").document(st.session_state["email"]).update({
-                    "pro": True
-                })
-
                 st.session_state["pro"] = True
                 st.success("🎉 PRO liberado!")
                 st.rerun()
