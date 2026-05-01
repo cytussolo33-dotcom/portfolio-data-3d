@@ -2,7 +2,6 @@ import streamlit as st
 import mercadopago
 import firebase_admin
 from firebase_admin import credentials, firestore
-import json
 import hashlib
 
 # ==============================
@@ -14,10 +13,10 @@ WEBHOOK_URL = st.secrets["WEBHOOK_URL"]
 sdk = mercadopago.SDK(ACCESS_TOKEN)
 
 # ==============================
-# FIREBASE
+# FIREBASE (CORRIGIDO)
 # ==============================
 if not firebase_admin._apps:
-    cred = credentials.Certificate(json.loads(st.secrets["firebase_key"]))
+    cred = credentials.Certificate(st.secrets["firebase"])
     firebase_admin.initialize_app(cred)
 
 db = firestore.client()
@@ -77,7 +76,6 @@ if st.session_state["logado"]:
 
     st.write(f"👤 {st.session_state['email']}")
 
-    # sempre busca status atualizado
     user = db.collection("users").document(st.session_state["email"]).get()
     if user.exists:
         st.session_state["pro"] = user.to_dict().get("pro", False)
@@ -95,22 +93,25 @@ if st.session_state["logado"]:
 
         if st.button("💳 Virar PRO"):
 
-            preference = {
-                "items": [
-                    {
-                        "title": "Plano PRO",
-                        "quantity": 1,
-                        "unit_price": 9.90
-                    }
-                ],
+            pagamento = {
+                "transaction_amount": 9.90,
+                "description": "Plano PRO",
+                "payment_method_id": "pix",
                 "payer": {
-                    "email": st.session_state["email"]
+                    "email": "test_user_123@test.com"  # evita erro de credencial
                 },
                 "notification_url": WEBHOOK_URL
             }
 
-            res = sdk.preference().create(preference)
-            data = res["response"]
+            res = sdk.payment().create(pagamento)
 
-            st.link_button("💳 Pagar agora", data["init_point"])
-            st.info("Após pagar, o acesso será liberado automaticamente.")
+            if res["status"] == 201:
+                data = res["response"]
+                td = data["point_of_interaction"]["transaction_data"]
+
+                st.image(f"data:image/png;base64,{td['qr_code_base64']}")
+                st.code(td["qr_code"])
+                st.info("Após pagar, o acesso será liberado automaticamente.")
+            else:
+                st.error("Erro ao gerar pagamento")
+                st.write(res)
