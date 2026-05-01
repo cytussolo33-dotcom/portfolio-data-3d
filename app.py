@@ -1,29 +1,52 @@
 import streamlit as st
 import mercadopago
+import firebase_admin
+from firebase_admin import credentials, firestore
+import json
+
+# =========================
+# 🔥 FIREBASE
+# =========================
+if not firebase_admin._apps:
+    firebase_dict = json.loads(st.secrets["firebase_key"])
+    cred = credentials.Certificate(firebase_dict)
+    firebase_admin.initialize_app(cred)
+
+db = firestore.client()
 
 # =========================
 # 🔑 MERCADO PAGO
 # =========================
-MP_TOKEN = "SEU_TOKEN_AQUI"  # ⚠️ troca depois
+MP_TOKEN = "SEU_TOKEN_AQUI"
 sdk = mercadopago.SDK(MP_TOKEN)
 
 st.title("💎 Acesso PRO")
 
 # =========================
-# 🔐 LOGIN SIMPLES (LOCAL)
+# 🔐 LOGIN
 # =========================
-if "logado" not in st.session_state:
-    st.session_state["logado"] = False
-    st.session_state["pro"] = False
-
 email = st.text_input("Email")
 senha = st.text_input("Senha", type="password")
 
 if st.button("Entrar / Criar"):
-    # login fake (sem banco)
-    st.session_state["logado"] = True
-    st.session_state["email"] = email
-    st.success("Login feito!")
+    user_ref = db.collection("users").document(email)
+    user = user_ref.get()
+
+    if user.exists:
+        data = user.to_dict()
+        if data["senha"] == senha:
+            st.session_state["logado"] = True
+            st.session_state["email"] = email
+            st.session_state["pro"] = data.get("pro", False)
+            st.success("Login feito!")
+        else:
+            st.error("Senha errada")
+    else:
+        user_ref.set({
+            "senha": senha,
+            "pro": False
+        })
+        st.success("Conta criada!")
 
 # =========================
 # 💎 AREA PRO
@@ -46,8 +69,8 @@ if st.session_state.get("logado"):
             }
 
             res = sdk.payment().create(pagamento)
-
             data = res["response"]
+
             st.session_state["payment_id"] = data["id"]
 
             qr = data["point_of_interaction"]["transaction_data"]["qr_code_base64"]
@@ -65,6 +88,10 @@ if st.session_state.get("logado"):
             status = result["response"]["status"]
 
             if status == "approved":
+                db.collection("users").document(st.session_state["email"]).update({
+                    "pro": True
+                })
+
                 st.session_state["pro"] = True
                 st.success("🎉 PRO liberado!")
                 st.rerun()
