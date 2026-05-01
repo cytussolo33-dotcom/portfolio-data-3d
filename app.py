@@ -1,150 +1,141 @@
 import streamlit as st
-import mercadopago
+import requests
 
-# =========================
-# 🔑 CONFIG
-# =========================
-MP_TOKEN = "SEU_TOKEN_AQUI"
-sdk = mercadopago.SDK(MP_TOKEN)
+# 🔑 COLOQUE SEU TOKEN AQUI
+ACCESS_TOKEN = "SEU_ACCESS_TOKEN_AQUI"
 
-LIMITE_FREE = 5
+# 📦 Estado inicial
+if "logado" not in st.session_state:
+    st.session_state.logado = False
+if "entregas" not in st.session_state:
+    st.session_state.entregas = []
+if "pro" not in st.session_state:
+    st.session_state.pro = False
 
-st.set_page_config(page_title="Controle de Entregas", page_icon="📦")
-
-# =========================
 # 🔐 LOGIN SIMPLES
-# =========================
-st.title("🔐 Login")
+if not st.session_state.logado:
+    st.title("🔐 Login")
 
-email = st.text_input("Email")
-senha = st.text_input("Senha", type="password")
+    email = st.text_input("Email")
+    senha = st.text_input("Senha", type="password")
 
-if st.button("Entrar / Criar"):
-    st.session_state["logado"] = True
-    st.session_state["email"] = email
-    st.session_state["pro"] = False
-    st.success("Login feito!")
+    if st.button("Entrar / Criar"):
+        if email and senha:
+            st.session_state.logado = True
+            st.success("Login realizado!")
+            st.rerun()
+        else:
+            st.error("Preencha os dados")
 
-# =========================
-# 📦 APP
-# =========================
-if st.session_state.get("logado"):
+    st.stop()
 
-    st.title("📦 Controle de Entregas")
+# 🚀 APP PRINCIPAL
+st.title("📦 Entregas PRO")
+st.caption("Controle suas entregas e maximize seu lucro 💰")
 
-    st.write(f"👤 {st.session_state['email']}")
+# 🎯 META
+meta = st.number_input("Quanto quer ganhar hoje (R$)", min_value=0.0, step=10.0)
 
-    # Inicializa dados
-    if "entregas" not in st.session_state:
-        st.session_state["entregas"] = []
+# ➕ NOVA ENTREGA
+st.subheader("📦 Nova Entrega")
+valor = st.number_input("Valor da entrega", min_value=0.0, step=1.0)
+custo = st.number_input("Custo", min_value=0.0, step=1.0)
 
-    # =========================
-    # 🎯 META
-    # =========================
-    meta = st.number_input("Quanto quer ganhar hoje (R$)", min_value=0.0)
-
-    # =========================
-    # ➕ NOVA ENTREGA
-    # =========================
-    st.subheader("📦 Nova Entrega")
-
-    valor = st.number_input("Valor da entrega", min_value=0.0)
-    custo = st.number_input("Custo", min_value=0.0)
-
+# 🔒 Limite grátis
+limite = 5
+if not st.session_state.pro and len(st.session_state.entregas) >= limite:
+    st.warning("⚠️ Plano grátis limitado a 5 entregas")
+else:
     if st.button("Adicionar entrega"):
+        st.session_state.entregas.append((valor, custo))
+        st.success("Entrega adicionada!")
 
-        # 🚫 BLOQUEIO FREE
-        if not st.session_state.get("pro") and len(st.session_state["entregas"]) >= LIMITE_FREE:
-            st.error("🚫 Limite grátis atingido! Vire PRO 🚀")
-        else:
-            st.session_state["entregas"].append({
-                "valor": valor,
-                "custo": custo
-            })
-            st.success("Entrega adicionada!")
+# 📋 LISTA
+st.subheader("📋 Entregas")
 
-    # =========================
-    # 📋 LISTA
-    # =========================
-    st.subheader("📋 Entregas")
+if st.session_state.entregas:
+    for i, (v, c) in enumerate(st.session_state.entregas):
+        st.write(f"{i+1}. 💰 {v} | 💸 {c}")
+else:
+    st.info("Sem entregas ainda")
 
-    if len(st.session_state["entregas"]) == 0:
-        st.info("Sem entregas ainda")
+# 📊 RESUMO
+st.subheader("📊 Resumo")
+
+total = sum(v for v, c in st.session_state.entregas)
+custos = sum(c for v, c in st.session_state.entregas)
+lucro = total - custos
+
+st.write(f"💰 Total: R$ {total:.2f}")
+st.write(f"💸 Custos: R$ {custos:.2f}")
+st.write(f"🟢 Lucro: R$ {lucro:.2f}")
+
+if meta > 0:
+    restante = meta - lucro
+    if restante > 0:
+        st.warning(f"⚠️ Faltam R$ {restante:.2f} para sua meta")
     else:
-        for i, e in enumerate(st.session_state["entregas"]):
-            st.write(f"{i+1}. 💰 {e['valor']} | 💸 {e['custo']}")
+        st.success("🎉 Meta batida!")
 
-    # =========================
-    # 📊 RESUMO
-    # =========================
-    st.subheader("📊 Resumo")
+if st.button("🗑 Limpar tudo"):
+    st.session_state.entregas = []
+    st.rerun()
 
-    total = sum(e["valor"] for e in st.session_state["entregas"])
-    custos = sum(e["custo"] for e in st.session_state["entregas"])
-    lucro = total - custos
+# 💳 PAGAMENTO MERCADO PAGO
+def criar_pagamento():
+    url = "https://api.mercadopago.com/v1/payments"
 
-    st.write(f"💰 Total: R$ {total}")
-    st.write(f"💸 Custos: R$ {custos}")
-    st.write(f"🟢 Lucro: R$ {lucro}")
+    headers = {
+        "Authorization": f"Bearer {ACCESS_TOKEN}",
+        "Content-Type": "application/json"
+    }
 
-    if meta > 0:
-        falta = meta - lucro
-        if falta > 0:
-            st.warning(f"⚠️ Faltam R$ {falta:.2f} para sua meta")
+    data = {
+        "transaction_amount": 9.90,
+        "description": "Entregas PRO - Versão Premium",
+        "payment_method_id": "pix",
+        "payer": {
+            "email": "teste@gmail.com"
+        }
+    }
+
+    response = requests.post(url, json=data, headers=headers)
+    return response.json()
+
+# 💎 PRO
+st.subheader("💎 Versão PRO")
+
+if st.session_state.pro:
+    st.success("🚀 Você é PRO!")
+else:
+    st.warning("⚠️ Plano grátis limitado a 5 entregas")
+
+    if st.button("💳 Virar PRO (R$9,90)"):
+        pagamento = criar_pagamento()
+
+        if "id" in pagamento:
+            st.success("Pagamento criado!")
+
+            # 🧠 guarda id sem quebrar
+            st.session_state.payment_id = pagamento.get("id", None)
+
+            # 📲 QR Code PIX
+            if "point_of_interaction" in pagamento:
+                dados = pagamento["point_of_interaction"]["transaction_data"]
+
+                st.subheader("📲 Pague com PIX")
+
+                st.image(f"data:image/png;base64,{dados['qr_code_base64']}")
+                st.code(dados["qr_code"])
+
+                st.info("Após pagar, recarregue a página")
+
         else:
-            st.success("🎉 Meta atingida!")
+            st.error("Erro ao gerar pagamento")
+            st.write(pagamento)
 
-    if st.button("🗑️ Limpar tudo"):
-        st.session_state["entregas"] = []
-
-    # =========================
-    # 💎 PRO
-    # =========================
-    st.subheader("💎 Versão PRO")
-
-    if st.session_state.get("pro"):
-        st.success("🚀 Você é PRO!")
-    else:
-        st.warning(f"Plano grátis: até {LIMITE_FREE} entregas")
-
-        # =========================
-        # 💳 PAGAMENTO PIX
-        # =========================
-        if st.button("💳 Virar PRO (R$9,90)"):
-
-            pagamento = {
-                "transaction_amount": 9.90,
-                "description": "Plano PRO",
-                "payment_method_id": "pix",
-                "payer": {
-                    "email": st.session_state["email"]
-                }
-            }
-
-            res = sdk.payment().create(pagamento)
-            data = res["response"]
-
-            st.session_state["payment_id"] = data["id"]
-
-            qr = data["point_of_interaction"]["transaction_data"]["qr_code_base64"]
-            copia = data["point_of_interaction"]["transaction_data"]["qr_code"]
-
-            st.image(f"data:image/png;base64,{qr}")
-            st.code(copia)
-
-        # =========================
-        # 🔎 VERIFICAR PAGAMENTO
-        # =========================
-        if "payment_id" in st.session_state:
-
-            if st.button("✅ Já paguei"):
-
-                result = sdk.payment().get(st.session_state["payment_id"])
-                status = result["response"]["status"]
-
-                if status == "approved":
-                    st.session_state["pro"] = True
-                    st.success("🚀 Agora você é PRO!")
-                    st.rerun()
-                else:
-                    st.warning(f"Status: {status}")
+# 🔄 ATIVAR PRO MANUAL (teste)
+if st.button("✅ Já paguei (ativar PRO)"):
+    st.session_state.pro = True
+    st.success("PRO ativado!")
+    st.rerun()
