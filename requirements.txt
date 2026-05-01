@@ -1,5 +1,3 @@
-if st.button("Entrar / Criar"):
-    st.session_state["logado"] = True
-    st.session_state["email"] = email
-    st.session_state["pro"] = False
-    st.success("Login simples ativado!")
+streamlit
+firebase-admin
+mercadopago
