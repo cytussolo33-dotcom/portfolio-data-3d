@@ -6,14 +6,14 @@ from firebase_admin import credentials, firestore
 # =========================
 # 🔑 MERCADO PAGO
 # =========================
-MP_TOKEN = "APP_USR-3208236820348419-043015-a94d2bb3e00c239cf241711284a86683-1591849347"
+MP_TOKEN = "SEU_TOKEN_AQUI"
 sdk = mercadopago.SDK(MP_TOKEN)
 
 # =========================
 # 🔥 FIREBASE
 # =========================
 if not firebase_admin._apps:
-    cred = credentials.Certificate("firebase_key.json")
+    cred = credentials.Certificate("firebase-key.json")  # ✅ corrigido
     firebase_admin.initialize_app(cred)
 
 db = firestore.client()
@@ -27,24 +27,27 @@ email = st.text_input("Email")
 senha = st.text_input("Senha", type="password")
 
 if st.button("Entrar / Criar"):
-    user_ref = db.collection("users").document(email)
-    user = user_ref.get()
-
-    if user.exists:
-        data = user.to_dict()
-        if data["senha"] == senha:
-            st.session_state["logado"] = True
-            st.session_state["email"] = email
-            st.session_state["pro"] = data.get("pro", False)
-            st.success("Login feito!")
-        else:
-            st.error("Senha errada")
+    if email == "" or senha == "":
+        st.warning("Preencha tudo")
     else:
-        user_ref.set({
-            "senha": senha,
-            "pro": False
-        })
-        st.success("Conta criada!")
+        user_ref = db.collection("users").document(email)
+        user = user_ref.get()
+
+        if user.exists:
+            data = user.to_dict()
+            if data["senha"] == senha:
+                st.session_state["logado"] = True
+                st.session_state["email"] = email
+                st.session_state["pro"] = data.get("pro", False)
+                st.success("Login feito!")
+            else:
+                st.error("Senha errada")
+        else:
+            user_ref.set({
+                "senha": senha,
+                "pro": False
+            })
+            st.success("Conta criada!")
 
 # =========================
 # 💎 AREA PRO
@@ -67,8 +70,8 @@ if st.session_state.get("logado"):
             }
 
             res = sdk.payment().create(pagamento)
-
             data = res["response"]
+
             st.session_state["payment_id"] = data["id"]
 
             qr = data["point_of_interaction"]["transaction_data"]["qr_code_base64"]
