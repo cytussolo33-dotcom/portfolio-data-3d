@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 
 # 🔑 COLOQUE SEU TOKEN AQUI
-ACCESS_TOKEN = "SEU_ACCESS_TOKEN_AQUI"
+ACCESS_TOKEN = "APP_USR-6551095925296301-050115-39c72e17071635e99aa0bf649f469fba-3369029229"
 
 # 📦 Estado inicial
 if "logado" not in st.session_state:
