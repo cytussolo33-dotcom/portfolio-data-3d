@@ -112,7 +112,7 @@ if st.session_state["logado"]:
 
                 st.image(f"data:image/png;base64,{td['qr_code_base64']}")
                 st.code(td["qr_code"])
-                st.info("Após pagar, atualize a página.")
+                st.info("Pague o PIX e depois atualize a página.")
             else:
                 st.error("Erro ao gerar pagamento")
                 st.write(res)
