@@ -3,7 +3,7 @@ import mercadopago
 
 app = Flask(__name__)
 
-sdk = mercadopago.SDK("SEU_ACCESS_TOKEN")
+sdk = mercadopago.SDK("APP_USR-4942813099956982-050118-47ab93b27d9acf41b0390203733dad02-3369029229")
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
