@@ -8,24 +8,30 @@ import uuid
 # ========================
 # CONFIG
 # ========================
-MP_TOKEN = st.secrets["MP_ACCESS_TOKEN"]
+st.set_page_config(page_title="Controle Financeiro PRO", layout="centered")
 
-st.set_page_config(page_title="Controle Financeiro PRO")
+MP_TOKEN = st.secrets.get("MP_ACCESS_TOKEN")
+
+if not MP_TOKEN:
+    st.error("Token do Mercado Pago não configurado")
+    st.stop()
 
 # ========================
 # BANCO
 # ========================
+DB_FILE = "users.json"
+
 def carregar():
-    if not os.path.exists("users.json"):
+    if not os.path.exists(DB_FILE):
         return {}
     try:
-        with open("users.json", "r") as f:
+        with open(DB_FILE, "r") as f:
             return json.load(f)
     except:
         return {}
 
 def salvar(data):
-    with open("users.json", "w") as f:
+    with open(DB_FILE, "w") as f:
         json.dump(data, f, indent=2)
 
 def hash_senha(s):
@@ -47,29 +53,31 @@ if not st.session_state.user:
 
     st.title("🔐 Login")
 
-    email = st.text_input("Email", key="login_email")
-    senha = st.text_input("Senha", type="password", key="login_senha")
+    email = st.text_input("Email", key="email")
+    senha = st.text_input("Senha", type="password", key="senha")
 
     if st.button("Entrar / Criar conta"):
         if not email or not senha:
-            st.warning("Preencha email e senha")
+            st.warning("Preencha todos os campos")
             st.stop()
 
         users = carregar()
+        senha_hash = hash_senha(senha)
 
         if email in users:
-            if users[email]["senha"] == hash_senha(senha):
+            if users[email]["senha"] == senha_hash:
                 st.session_state.user = email
                 st.rerun()
             else:
                 st.error("Senha incorreta")
         else:
             users[email] = {
-                "senha": hash_senha(senha),
+                "senha": senha_hash,
                 "pro": False,
                 "dados": []
             }
             salvar(users)
+            st.success("Conta criada!")
             st.session_state.user = email
             st.rerun()
 
@@ -136,24 +144,24 @@ else:
     if st.button("💳 Gerar PIX"):
 
         try:
-            url = "https://api.mercadopago.com/v1/payments"
+            response = requests.post(
+                "https://api.mercadopago.com/v1/payments",
+                headers={
+                    "Authorization": f"Bearer {MP_TOKEN}",
+                    "Content-Type": "application/json",
+                    "X-Idempotency-Key": f"{email}-{uuid.uuid4()}"
+                },
+                json={
+                    "transaction_amount": 9.90,
+                    "description": "Plano PRO",
+                    "payment_method_id": "pix",
+                    "payer": {"email": email},
+                    "external_reference": email
+                },
+                timeout=15
+            )
 
-            headers = {
-                "Authorization": f"Bearer {MP_TOKEN}",
-                "Content-Type": "application/json",
-                "X-Idempotency-Key": str(uuid.uuid4())
-            }
-
-            body = {
-                "transaction_amount": 9.90,
-                "description": "Plano PRO",
-                "payment_method_id": "pix",
-                "payer": {"email": email},
-                "external_reference": email
-            }
-
-            r = requests.post(url, json=body, headers=headers)
-            pagamento = r.json()
+            pagamento = response.json()
 
             if "id" not in pagamento:
                 st.error("Erro ao gerar pagamento")
@@ -161,17 +169,16 @@ else:
             else:
                 st.session_state.payment_id = pagamento["id"]
 
-                qr = pagamento["point_of_interaction"]["transaction_data"]["qr_code"]
-                qr_img = pagamento["point_of_interaction"]["transaction_data"]["qr_code_base64"]
+                data = pagamento["point_of_interaction"]["transaction_data"]
 
-                st.image(f"data:image/png;base64,{qr_img}")
-                st.code(qr)
+                st.image(f"data:image/png;base64,{data['qr_code_base64']}")
+                st.code(data["qr_code"])
 
-                st.success("PIX gerado com sucesso")
-                st.info("Pague e clique em verificar")
+                st.success("PIX gerado!")
+                st.info("Após pagar, clique em verificar")
 
         except Exception as e:
-            st.error("Erro ao conectar com pagamento")
+            st.error("Erro ao gerar PIX")
             st.write(str(e))
 
     # ========================
@@ -182,17 +189,14 @@ else:
         if st.button("✅ Já paguei, verificar"):
 
             try:
-                url = f"https://api.mercadopago.com/v1/payments/{st.session_state.payment_id}"
+                response = requests.get(
+                    f"https://api.mercadopago.com/v1/payments/{st.session_state.payment_id}",
+                    headers={"Authorization": f"Bearer {MP_TOKEN}"},
+                    timeout=10
+                )
 
-                headers = {
-                    "Authorization": f"Bearer {MP_TOKEN}"
-                }
-
-                r = requests.get(url, headers=headers)
-                payment = r.json()
-
+                payment = response.json()
                 status = payment.get("status")
-                st.write("Status:", status)
 
                 if status == "approved":
                     users[email]["pro"] = True
