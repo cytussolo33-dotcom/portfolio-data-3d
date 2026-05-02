@@ -46,9 +46,10 @@ def webhook():
         payment = sdk.payment().get(payment_id)
         info = payment["response"]
 
+        # 🔥 só continua se estiver aprovado
         if info.get("status") == "approved":
 
-            # 🔥 PEGA DO external_reference (AGORA FUNCIONA SEMPRE)
+            # 🔥 usa o external_reference (GARANTIDO)
             email = info.get("external_reference")
 
             if not email:
@@ -64,5 +65,8 @@ def webhook():
     return "OK", 200
 
 
+# ==============================
+# RUN
+# ==============================
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
