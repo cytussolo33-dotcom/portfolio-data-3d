@@ -21,25 +21,26 @@ def webhook():
     data = request.json
 
     try:
-        if "data" in data:
-            payment_id = data["data"]["id"]
+        payment_id = data["data"]["id"]
 
-            url = f"https://api.mercadopago.com/v1/payments/{payment_id}"
-            headers = {"Authorization": f"Bearer {os.environ.get('MP_ACCESS_TOKEN')}"}
+        url = f"https://api.mercadopago.com/v1/payments/{payment_id}"
+        headers = {
+            "Authorization": f"Bearer {os.environ.get('MP_ACCESS_TOKEN')}"
+        }
 
-            r = requests.get(url, headers=headers)
-            payment = r.json()
+        r = requests.get(url, headers=headers)
+        payment = r.json()
 
-            if payment["status"] == "approved":
+        if payment["status"] == "approved":
 
-                email = payment["external_reference"]
+            email = payment["external_reference"]
 
-                users = carregar()
+            users = carregar()
 
-                if email in users:
-                    users[email]["pro"] = True
-                    salvar(users)
-                    print("PRO liberado:", email)
+            if email in users:
+                users[email]["pro"] = True
+                salvar(users)
+                print("🔥 PRO liberado:", email)
 
     except Exception as e:
         print("Erro:", str(e))
