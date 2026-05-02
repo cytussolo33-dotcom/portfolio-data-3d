@@ -16,8 +16,6 @@ def get_secret(key, default=None):
 ACCESS_TOKEN = get_secret("MP_ACCESS_TOKEN")
 WEBHOOK_URL = get_secret("WEBHOOK_URL")
 
-DEV_MODE = True  # desligar depois
-
 if not ACCESS_TOKEN:
     st.error("❌ MP_ACCESS_TOKEN não configurado!")
     st.stop()
@@ -96,7 +94,7 @@ if st.session_state["logado"]:
 
     users = carregar_usuarios()
 
-    # atualiza status PRO do JSON
+    # atualiza status PRO sempre do banco
     if st.session_state["email"] in users:
         st.session_state["pro"] = users[st.session_state["email"]].get("pro", False)
 
@@ -117,15 +115,7 @@ if st.session_state["logado"]:
     else:
         st.warning("Plano grátis limitado")
 
-        # 🔓 DEV
-        if DEV_MODE:
-            if st.button("🔓 Liberar PRO (DEV)"):
-                users[st.session_state["email"]]["pro"] = True
-                salvar_usuarios(users)
-                st.success("🔥 PRO liberado")
-                st.rerun()
-
-        # 💳 PAGAMENTO
+        # 💳 PAGAMENTO REAL (única forma de liberar)
         if st.button("💳 Virar PRO"):
 
             pagamento = {
@@ -148,7 +138,7 @@ if st.session_state["logado"]:
 
                     st.image(f"data:image/png;base64,{td['qr_code_base64']}")
                     st.code(td["qr_code"])
-                    st.info("Pague o PIX e aguarde alguns segundos, depois atualize a página.")
+                    st.info("Pague o PIX. Após a confirmação, atualize a página.")
                 else:
                     st.error("Erro ao gerar pagamento")
                     st.write(res)
