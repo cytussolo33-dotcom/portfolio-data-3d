@@ -5,10 +5,25 @@ import os
 import hashlib
 
 # ==============================
-# CONFIG
+# CONFIG (SEGURO)
 # ==============================
-ACCESS_TOKEN = st.secrets["MP_TOKEN"]
-WEBHOOK_URL = st.secrets["WEBHOOK_URL"]
+def get_secret(key, default=None):
+    try:
+        return st.secrets[key]
+    except Exception:
+        return default
+
+ACCESS_TOKEN = get_secret("MP_TOKEN")
+WEBHOOK_URL = get_secret("WEBHOOK_URL")
+
+# validação
+if not ACCESS_TOKEN:
+    st.error("❌ MP_TOKEN não configurado nos Secrets!")
+    st.info("Vá em: Manage app → Secrets")
+    st.stop()
+
+if not WEBHOOK_URL:
+    st.warning("⚠️ WEBHOOK_URL não configurado (opcional)")
 
 sdk = mercadopago.SDK(ACCESS_TOKEN)
 
@@ -78,7 +93,6 @@ if st.session_state["logado"]:
 
     st.write(f"👤 {st.session_state['email']}")
 
-    # Atualiza status do usuário
     users = carregar_usuarios()
     if st.session_state["email"] in users:
         st.session_state["pro"] = users[st.session_state["email"]].get("pro", False)
@@ -106,15 +120,20 @@ if st.session_state["logado"]:
                 "notification_url": WEBHOOK_URL
             }
 
-            res = sdk.payment().create(pagamento)
+            try:
+                res = sdk.payment().create(pagamento)
 
-            if res["status"] == 201:
-                data = res["response"]
-                td = data["point_of_interaction"]["transaction_data"]
+                if res["status"] == 201:
+                    data = res["response"]
+                    td = data["point_of_interaction"]["transaction_data"]
 
-                st.image(f"data:image/png;base64,{td['qr_code_base64']}")
-                st.code(td["qr_code"])
-                st.info("Após pagar, o acesso será liberado automaticamente.")
-            else:
-                st.error("Erro ao gerar pagamento")
-                st.write(res)
+                    st.image(f"data:image/png;base64,{td['qr_code_base64']}")
+                    st.code(td["qr_code"])
+                    st.info("Após pagar, o acesso será liberado automaticamente.")
+                else:
+                    st.error("Erro ao gerar pagamento")
+                    st.write(res)
+
+            except Exception as e:
+                st.error("Erro geral ao criar pagamento")
+                st.write(str(e))
