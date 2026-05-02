@@ -1,8 +1,8 @@
 import streamlit as st
 import mercadopago
-import hashlib
 import json
 import os
+import hashlib
 
 # ==============================
 # CONFIG
@@ -13,7 +13,7 @@ WEBHOOK_URL = st.secrets["WEBHOOK_URL"]
 sdk = mercadopago.SDK(ACCESS_TOKEN)
 
 # ==============================
-# BANCO JSON
+# BANCO (JSON)
 # ==============================
 def carregar_usuarios():
     if not os.path.exists("users.json"):
@@ -51,9 +51,9 @@ st.title("💰 SaaS Entregas PRO")
 email = st.text_input("Email")
 senha = st.text_input("Senha", type="password")
 
-users = carregar_usuarios()
-
 if st.button("Entrar / Criar conta"):
+
+    users = carregar_usuarios()
 
     if email in users:
         if users[email]["senha"] == hash_senha(senha):
@@ -78,8 +78,10 @@ if st.session_state["logado"]:
 
     st.write(f"👤 {st.session_state['email']}")
 
+    # Atualiza status do usuário
     users = carregar_usuarios()
-    st.session_state["pro"] = users[st.session_state["email"]]["pro"]
+    if st.session_state["email"] in users:
+        st.session_state["pro"] = users[st.session_state["email"]].get("pro", False)
 
     if st.session_state["pro"]:
         st.success("🚀 PRO ativo")
@@ -112,7 +114,7 @@ if st.session_state["logado"]:
 
                 st.image(f"data:image/png;base64,{td['qr_code_base64']}")
                 st.code(td["qr_code"])
-                st.info("Pague o PIX e depois atualize a página.")
+                st.info("Após pagar, o acesso será liberado automaticamente.")
             else:
                 st.error("Erro ao gerar pagamento")
                 st.write(res)
