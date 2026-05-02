@@ -5,7 +5,7 @@ import os
 import hashlib
 
 # ==============================
-# CONFIG (SEGURO)
+# CONFIG
 # ==============================
 def get_secret(key, default=None):
     try:
@@ -16,11 +16,11 @@ def get_secret(key, default=None):
 ACCESS_TOKEN = get_secret("MP_TOKEN")
 WEBHOOK_URL = get_secret("WEBHOOK_URL")
 
-# 🔥 MODO DEV (não precisa pagar)
+# 🔥 modo dev (pode desligar depois)
 DEV_MODE = True
 
 if not ACCESS_TOKEN:
-    st.error("❌ MP_TOKEN não configurado nos Secrets!")
+    st.error("❌ MP_TOKEN não configurado!")
     st.stop()
 
 sdk = mercadopago.SDK(ACCESS_TOKEN)
@@ -65,14 +65,12 @@ email = st.text_input("Email")
 senha = st.text_input("Senha", type="password")
 
 if st.button("Entrar / Criar conta"):
-
     users = carregar_usuarios()
 
     if email in users:
         if users[email]["senha"] == hash_senha(senha):
             st.session_state["logado"] = True
             st.session_state["email"] = email
-            st.session_state["pro"] = users[email].get("pro", False)
             st.success("Login feito!")
         else:
             st.error("Senha incorreta")
@@ -92,11 +90,13 @@ if st.session_state["logado"]:
     st.write(f"👤 {st.session_state['email']}")
 
     users = carregar_usuarios()
+
+    # 🔥 aqui agora SEMPRE puxa do JSON atualizado
     if st.session_state["email"] in users:
         st.session_state["pro"] = users[st.session_state["email"]].get("pro", False)
 
     # ==============================
-    # 🚀 PRO ATIVO
+    # 🚀 PRO
     # ==============================
     if st.session_state["pro"]:
         st.success("🚀 PRO ativo")
@@ -107,20 +107,20 @@ if st.session_state["logado"]:
         st.write("🟢 Lucro: R$ 170")
 
     # ==============================
-    # 💳 PLANO FREE
+    # 💳 FREE
     # ==============================
     else:
         st.warning("Plano grátis limitado")
 
-        # 🔓 BOTÃO DEV (só pra você testar)
+        # 🔓 DEV
         if DEV_MODE:
             if st.button("🔓 Liberar PRO (DEV)"):
                 users[st.session_state["email"]]["pro"] = True
                 salvar_usuarios(users)
-                st.success("🔥 PRO liberado (modo DEV)")
+                st.success("🔥 PRO liberado")
                 st.rerun()
 
-        # 💳 PAGAMENTO REAL
+        # 💳 PAGAMENTO
         if st.button("💳 Virar PRO"):
 
             pagamento = {
@@ -142,11 +142,11 @@ if st.session_state["logado"]:
 
                     st.image(f"data:image/png;base64,{td['qr_code_base64']}")
                     st.code(td["qr_code"])
-                    st.info("Após pagar, o acesso será liberado automaticamente.")
+                    st.info("Pague o PIX para liberar o PRO automaticamente.")
                 else:
                     st.error("Erro ao gerar pagamento")
                     st.write(res)
 
             except Exception as e:
-                st.error("Erro ao criar pagamento")
+                st.error("Erro no pagamento")
                 st.write(str(e))
