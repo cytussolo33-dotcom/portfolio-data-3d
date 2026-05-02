@@ -65,7 +65,7 @@ if "payment_id" not in st.session_state:
 if not st.session_state.user:
 
     st.title("📱 Lucro PRO")
-    st.markdown("Controle seu dinheiro de forma inteligente")
+    st.markdown("Controle seu dinheiro como um profissional")
 
     email = st.text_input("📧 Email")
     senha = st.text_input("🔒 Senha", type="password")
@@ -108,7 +108,7 @@ st.title("💰 Seu Lucro")
 st.caption(email)
 
 # ========================
-# INPUTS
+# INPUT
 # ========================
 col1, col2 = st.columns(2)
 
@@ -145,32 +145,64 @@ if user["dados"]:
     dias = len(dados)
     projecao = media * 30
 
+    positivos = len([d for d in dados if d > 0])
+    taxa = (positivos / dias) * 100
+
+    acumulado = []
+    soma = 0
+    for d in dados:
+        soma += d
+        acumulado.append(soma)
+
     st.divider()
-    st.markdown("## 📊 Análise Avançada")
+    st.markdown("## 📊 Análise Profissional")
 
     c1, c2 = st.columns(2)
     c3, c4 = st.columns(2)
 
     c1.metric("💰 Total", f"R$ {total:.2f}")
     c2.metric("📈 Média", f"R$ {media:.2f}")
-    c3.metric("🔥 Melhor dia", f"R$ {melhor:.2f}")
-    c4.metric("📉 Pior dia", f"R$ {pior:.2f}")
+    c3.metric("🔥 Melhor", f"R$ {melhor:.2f}")
+    c4.metric("📉 Pior", f"R$ {pior:.2f}")
 
     st.metric("📅 Dias", dias)
+    st.metric("📊 Taxa de lucro", f"{taxa:.1f}%")
     st.metric("🚀 Projeção mensal", f"R$ {projecao:.2f}")
 
+    # META
+    meta = st.number_input("🎯 Meta mensal", value=3000.0)
+    progresso = (total / meta) * 100 if meta > 0 else 0
+    st.progress(min(progresso / 100, 1.0))
+    st.caption(f"{progresso:.1f}% da meta")
+
+    # GRÁFICOS
+    st.markdown("### 📈 Evolução")
+    st.line_chart(dados)
+
+    st.markdown("### 📊 Lucro acumulado")
+    st.line_chart(acumulado)
+
+    # INSIGHT
+    if taxa > 70:
+        st.success("🔥 Você está indo muito bem!")
+    elif taxa > 40:
+        st.info("👍 Resultado estável")
+    else:
+        st.warning("⚠️ Precisa melhorar seus resultados")
+
+    # LIMPAR
+    if st.button("🗑️ Limpar histórico"):
+        users[email]["dados"] = []
+        salvar(users)
+        st.rerun()
+
 # ========================
-# PRO
+# PRO (INTACTO)
 # ========================
 st.divider()
 
 if user.get("pro"):
     st.success("🚀 PRO desbloqueado")
-
-    if user["dados"]:
-        st.line_chart(user["dados"])
-    else:
-        st.info("Sem dados ainda")
 
 else:
     st.warning("Versão grátis")
