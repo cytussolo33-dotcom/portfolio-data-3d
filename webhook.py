@@ -13,7 +13,7 @@ if not ACCESS_TOKEN:
 sdk = mercadopago.SDK(ACCESS_TOKEN)
 
 # ==============================
-# BANCO JSON
+# BANCO
 # ==============================
 def carregar_usuarios():
     if not os.path.exists("users.json"):
@@ -46,10 +46,10 @@ def webhook():
         payment = sdk.payment().get(payment_id)
         info = payment["response"]
 
-        # 🔥 só continua se estiver aprovado
+        print("📦 Pagamento recebido:", info)
+
         if info.get("status") == "approved":
 
-            # 🔥 usa o external_reference (GARANTIDO)
             email = info.get("external_reference")
 
             if not email:
@@ -60,10 +60,10 @@ def webhook():
             if email in users:
                 users[email]["pro"] = True
                 salvar_usuarios(users)
+
                 print(f"🔥 {email} virou PRO!")
 
     return "OK", 200
-
 
 # ==============================
 # RUN
