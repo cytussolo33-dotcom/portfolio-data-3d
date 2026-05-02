@@ -2,16 +2,15 @@ import streamlit as st
 import json
 import os
 import requests
-import time
+import hashlib
 
 # ========================
 # CONFIG
 # ========================
-MP_TOKEN = os.environ.get("MP_ACCESS_TOKEN")
-WEBHOOK_URL = os.environ.get("WEBHOOK_URL")  # URL do Render
+MP_TOKEN = st.secrets["MP_ACCESS_TOKEN"]
 
 # ========================
-# BANCO SIMPLES
+# BANCO
 # ========================
 def carregar():
     if not os.path.exists("users.json"):
@@ -23,121 +22,158 @@ def salvar(data):
     with open("users.json", "w") as f:
         json.dump(data, f, indent=2)
 
+def hash_senha(s):
+    return hashlib.sha256(s.encode()).hexdigest()
+
 # ========================
-# LOGIN
+# SESSION
 # ========================
 if "user" not in st.session_state:
     st.session_state.user = None
 
-st.title("📊 Controle PRO")
+# ========================
+# LOGIN
+# ========================
+if not st.session_state.user:
 
-email = st.text_input("Email")
-senha = st.text_input("Senha", type="password")
+    st.title("🔐 Login")
 
-if st.button("Entrar / Criar conta"):
-    users = carregar()
+    email = st.text_input("Email")
+    senha = st.text_input("Senha", type="password")
 
-    if email not in users:
-        users[email] = {"senha": senha, "pro": False}
-        salvar(users)
-        st.success("Conta criada!")
+    if st.button("Entrar / Criar conta"):
+        users = carregar()
 
-    if users[email]["senha"] == senha:
-        st.session_state.user = email
-        st.success("Login feito!")
+        if email in users:
+            if users[email]["senha"] == hash_senha(senha):
+                st.session_state.user = email
+                st.rerun()
+            else:
+                st.error("Senha incorreta")
+        else:
+            users[email] = {
+                "senha": hash_senha(senha),
+                "pro": False,
+                "dados": []
+            }
+            salvar(users)
+            st.session_state.user = email
+            st.rerun()
+
+    st.stop()
 
 # ========================
 # APP
 # ========================
-if st.session_state.user:
+email = st.session_state.user
+users = carregar()
 
-    email = st.session_state.user
-    users = carregar()
+if email not in users:
+    st.session_state.user = None
+    st.rerun()
 
-    st.write(f"👤 {email}")
+user = users[email]
 
-    ganho = st.number_input("💰 Ganho", 0.0)
-    gasto = st.number_input("💸 Gasto", 0.0)
+st.title("💰 Controle Financeiro PRO")
+st.write(f"👤 {email}")
 
-    lucro = ganho - gasto
-    st.success(f"Lucro: R$ {lucro:.2f}")
+# ========================
+# CONTROLE
+# ========================
+ganho = st.number_input("💰 Ganho", 0.0)
+gasto = st.number_input("💸 Gasto", 0.0)
 
-    if st.button("Salvar dia"):
-        st.success("Salvo!")
+lucro = ganho - gasto
+st.success(f"Lucro: R$ {lucro:.2f}")
+
+if st.button("Salvar dia"):
+    user["dados"].append(lucro)
+    users[email] = user
+    salvar(users)
+    st.success("Salvo!")
+
+# ========================
+# PRO
+# ========================
+if user.get("pro"):
+    st.success("🚀 PRO ativo")
+
+    if user["dados"]:
+        st.line_chart(user["dados"])
+else:
+    st.warning("Plano grátis")
+
+    st.markdown("## 🚀 Virar PRO")
 
     # ========================
-    # PRO STATUS
+    # GERAR PIX
     # ========================
-    if users[email].get("pro"):
-        st.success("🚀 Você é PRO!")
-        st.write("Histórico completo liberado")
-    else:
-        st.warning("Plano grátis")
+    if st.button("💳 Gerar PIX"):
 
-        # ========================
-        # GERAR PIX
-        # ========================
-        if st.button("💳 Gerar PIX"):
+        url = "https://api.mercadopago.com/v1/payments"
 
-            url = "https://api.mercadopago.com/v1/payments"
+        headers = {
+            "Authorization": f"Bearer {MP_TOKEN}",
+            "Content-Type": "application/json"
+        }
+
+        body = {
+            "transaction_amount": 9.90,
+            "description": "Plano PRO",
+            "payment_method_id": "pix",
+            "payer": {"email": email},
+            "external_reference": email
+        }
+
+        r = requests.post(url, json=body, headers=headers)
+        pagamento = r.json()
+
+        try:
+            st.session_state.payment_id = pagamento["id"]
+
+            qr = pagamento["point_of_interaction"]["transaction_data"]["qr_code"]
+            qr_img = pagamento["point_of_interaction"]["transaction_data"]["qr_code_base64"]
+
+            st.image(f"data:image/png;base64,{qr_img}")
+            st.code(qr)
+
+            st.info("Pague o PIX e depois clique em verificar")
+
+        except:
+            st.error("Erro ao gerar pagamento")
+            st.write(pagamento)
+
+    # ========================
+    # VERIFICAR PAGAMENTO (ANTI BUG)
+    # ========================
+    if "payment_id" in st.session_state:
+
+        if st.button("✅ Já paguei, verificar"):
+
+            url = f"https://api.mercadopago.com/v1/payments/{st.session_state.payment_id}"
 
             headers = {
-                "Authorization": f"Bearer {MP_TOKEN}",
-                "Content-Type": "application/json"
+                "Authorization": f"Bearer {MP_TOKEN}"
             }
 
-            body = {
-                "transaction_amount": 9.90,
-                "description": "Plano PRO",
-                "payment_method_id": "pix",
-                "payer": {
-                    "email": email
-                },
-                "external_reference": email,
-                "notification_url": WEBHOOK_URL
-            }
+            r = requests.get(url, headers=headers)
+            payment = r.json()
 
-            r = requests.post(url, json=body, headers=headers)
-            pagamento = r.json()
+            st.write("Status:", payment.get("status"))  # DEBUG
 
-            try:
-                qr = pagamento["point_of_interaction"]["transaction_data"]["qr_code"]
-                qr_img = pagamento["point_of_interaction"]["transaction_data"]["qr_code_base64"]
+            if payment.get("status") == "approved":
 
-                st.image(f"data:image/png;base64,{qr_img}")
-                st.code(qr)
+                users[email]["pro"] = True
+                salvar(users)
 
-                st.info("Após pagar, clique em verificar")
+                st.success("🚀 PRO ativado!")
+                st.rerun()
+            else:
+                st.warning("Pagamento ainda não aprovado")
 
-                st.session_state.payment_id = pagamento["id"]
-
-            except:
-                st.error("Erro ao gerar pagamento")
-
-        # ========================
-        # VERIFICAR PAGAMENTO (ANTI BUG)
-        # ========================
-        if "payment_id" in st.session_state:
-
-            if st.button("✅ Já paguei, verificar"):
-
-                url = f"https://api.mercadopago.com/v1/payments/{st.session_state.payment_id}"
-
-                headers = {
-                    "Authorization": f"Bearer {MP_TOKEN}"
-                }
-
-                r = requests.get(url, headers=headers)
-                payment = r.json()
-
-                if payment.get("status") == "approved":
-
-                    users[email]["pro"] = True
-                    salvar(users)
-
-                    st.success("🚀 PRO ativado!")
-                    time.sleep(2)
-                    st.rerun()
-
-                else:
-                    st.warning("Pagamento ainda não confirmado")
+# ========================
+# LOGOUT
+# ========================
+if st.button("Sair"):
+    st.session_state.user = None
+    st.rerun()
