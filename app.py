@@ -8,13 +8,29 @@ import uuid
 # ========================
 # CONFIG
 # ========================
-st.set_page_config(page_title="Controle Financeiro PRO", layout="centered")
+st.set_page_config(page_title="Lucro PRO", layout="centered")
 
 MP_TOKEN = st.secrets.get("MP_ACCESS_TOKEN")
 
 if not MP_TOKEN:
-    st.error("Token do Mercado Pago não configurado")
+    st.error("Erro de configuração")
     st.stop()
+
+# ========================
+# STYLE (IOS FEEL)
+# ========================
+st.markdown("""
+<style>
+button {
+    border-radius: 12px !important;
+    height: 50px;
+    font-size: 16px !important;
+}
+.stTextInput input {
+    border-radius: 10px;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # ========================
 # BANCO
@@ -47,18 +63,20 @@ if "payment_id" not in st.session_state:
     st.session_state.payment_id = None
 
 # ========================
-# LOGIN
+# LOGIN SCREEN
 # ========================
 if not st.session_state.user:
 
-    st.title("🔐 Login")
+    st.title("📱 Lucro PRO")
 
-    email = st.text_input("Email", key="email")
-    senha = st.text_input("Senha", type="password", key="senha")
+    st.markdown("Controle seu dinheiro de forma simples e rápida")
 
-    if st.button("Entrar / Criar conta"):
+    email = st.text_input("📧 Email")
+    senha = st.text_input("🔒 Senha", type="password")
+
+    if st.button("Entrar"):
         if not email or not senha:
-            st.warning("Preencha todos os campos")
+            st.warning("Preencha tudo")
             st.stop()
 
         users = carregar()
@@ -77,7 +95,7 @@ if not st.session_state.user:
                 "dados": []
             }
             salvar(users)
-            st.success("Conta criada!")
+            st.success("Conta criada 🚀")
             st.session_state.user = email
             st.rerun()
 
@@ -88,68 +106,65 @@ if not st.session_state.user:
 # ========================
 email = st.session_state.user
 users = carregar()
-
-if email not in users:
-    st.session_state.user = None
-    st.rerun()
-
 user = users[email]
 
-st.title("💰 Controle Financeiro")
-st.write(f"👤 {email}")
+st.title("💰 Seu Lucro")
+st.caption(email)
 
 # ========================
-# CONTROLE
+# INPUTS
 # ========================
-st.subheader("📊 Seu dia")
+col1, col2 = st.columns(2)
 
-ganho = st.number_input("💰 Ganho", min_value=0.0)
-gasto = st.number_input("💸 Gasto", min_value=0.0)
+with col1:
+    ganho = st.number_input("💰 Ganho", min_value=0.0)
+
+with col2:
+    gasto = st.number_input("💸 Gasto", min_value=0.0)
 
 lucro = ganho - gasto
 
-if lucro >= 0:
-    st.success(f"Lucro: R$ {lucro:.2f}")
-else:
-    st.error(f"Prejuízo: R$ {lucro:.2f}")
+st.markdown("### Resultado")
 
-if st.button("💾 Salvar dia"):
+if lucro >= 0:
+    st.success(f"🟢 R$ {lucro:.2f}")
+else:
+    st.error(f"🔴 R$ {lucro:.2f}")
+
+if st.button("Salvar hoje"):
     user["dados"].append(lucro)
-    users[email] = user
     salvar(users)
-    st.success("Dia salvo!")
+    st.success("Salvo ✔")
 
 # ========================
 # PRO
 # ========================
-st.markdown("---")
+st.divider()
 
 if user.get("pro"):
-    st.success("🚀 PRO ativo")
+    st.success("🚀 PRO desbloqueado")
 
     if user["dados"]:
         st.line_chart(user["dados"])
     else:
-        st.info("Sem histórico ainda")
+        st.info("Sem dados ainda")
 
 else:
-    st.warning("Plano grátis")
+    st.warning("Versão grátis")
 
-    st.markdown("## 🚀 Liberar PRO")
-    st.markdown("💎 Acesso completo por apenas **R$9,90**")
+    st.markdown("### 🔓 Desbloquear PRO")
+    st.markdown("Acesso completo por **R$9,90**")
 
-    # ========================
     # GERAR PIX
-    # ========================
-    if st.button("💳 Gerar PIX"):
+    if st.button("Pagar com PIX 💳"):
 
         try:
-            response = requests.post(
+            r = requests.post(
                 "https://api.mercadopago.com/v1/payments",
                 headers={
                     "Authorization": f"Bearer {MP_TOKEN}",
                     "Content-Type": "application/json",
-                    "X-Idempotency-Key": f"{email}-{uuid.uuid4()}"
+                    "X-Idempotency-Key": str(uuid.uuid4())
                 },
                 json={
                     "transaction_amount": 9.90,
@@ -157,14 +172,13 @@ else:
                     "payment_method_id": "pix",
                     "payer": {"email": email},
                     "external_reference": email
-                },
-                timeout=15
+                }
             )
 
-            pagamento = response.json()
+            pagamento = r.json()
 
             if "id" not in pagamento:
-                st.error("Erro ao gerar pagamento")
+                st.error("Erro no pagamento")
                 st.write(pagamento)
             else:
                 st.session_state.payment_id = pagamento["id"]
@@ -174,52 +188,43 @@ else:
                 st.image(f"data:image/png;base64,{data['qr_code_base64']}")
                 st.code(data["qr_code"])
 
-                st.success("PIX gerado!")
-                st.info("Após pagar, clique em verificar")
+                st.success("Escaneie o PIX 👆")
 
         except Exception as e:
-            st.error("Erro ao gerar PIX")
+            st.error("Erro")
             st.write(str(e))
 
-    # ========================
-    # VERIFICAR PAGAMENTO
-    # ========================
+    # VERIFICAR
     if st.session_state.payment_id:
 
-        if st.button("✅ Já paguei, verificar"):
+        if st.button("Já paguei ✔"):
 
-            try:
-                response = requests.get(
-                    f"https://api.mercadopago.com/v1/payments/{st.session_state.payment_id}",
-                    headers={"Authorization": f"Bearer {MP_TOKEN}"},
-                    timeout=10
-                )
+            r = requests.get(
+                f"https://api.mercadopago.com/v1/payments/{st.session_state.payment_id}",
+                headers={"Authorization": f"Bearer {MP_TOKEN}"}
+            )
 
-                payment = response.json()
-                status = payment.get("status")
+            payment = r.json()
+            status = payment.get("status")
 
-                if status == "approved":
-                    users[email]["pro"] = True
-                    salvar(users)
+            if status == "approved":
+                users[email]["pro"] = True
+                salvar(users)
 
-                    st.success("🚀 PRO ativado!")
-                    st.balloons()
-                    st.rerun()
+                st.success("🎉 PRO liberado!")
+                st.balloons()
+                st.rerun()
 
-                elif status == "pending":
-                    st.warning("Pagamento ainda pendente")
+            elif status == "pending":
+                st.warning("Ainda processando")
 
-                else:
-                    st.error("Pagamento não aprovado")
-
-            except Exception as e:
-                st.error("Erro ao verificar pagamento")
-                st.write(str(e))
+            else:
+                st.error("Pagamento não aprovado")
 
 # ========================
 # LOGOUT
 # ========================
-st.markdown("---")
+st.divider()
 
 if st.button("Sair"):
     st.session_state.user = None
