@@ -17,7 +17,7 @@ if not MP_TOKEN:
     st.stop()
 
 # ========================
-# STYLE (IOS FEEL)
+# STYLE
 # ========================
 st.markdown("""
 <style>
@@ -25,9 +25,6 @@ button {
     border-radius: 12px !important;
     height: 50px;
     font-size: 16px !important;
-}
-.stTextInput input {
-    border-radius: 10px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -63,13 +60,12 @@ if "payment_id" not in st.session_state:
     st.session_state.payment_id = None
 
 # ========================
-# LOGIN SCREEN
+# LOGIN
 # ========================
 if not st.session_state.user:
 
     st.title("📱 Lucro PRO")
-
-    st.markdown("Controle seu dinheiro de forma simples e rápida")
+    st.markdown("Controle seu dinheiro de forma inteligente")
 
     email = st.text_input("📧 Email")
     senha = st.text_input("🔒 Senha", type="password")
@@ -112,7 +108,7 @@ st.title("💰 Seu Lucro")
 st.caption(email)
 
 # ========================
-# INPUTS
+# INPUT
 # ========================
 col1, col2 = st.columns(2)
 
@@ -137,6 +133,34 @@ if st.button("Salvar hoje"):
     st.success("Salvo ✔")
 
 # ========================
+# MÉTRICAS AVANÇADAS
+# ========================
+if user["dados"]:
+    dados = user["dados"]
+
+    total = sum(dados)
+    media = total / len(dados)
+    melhor = max(dados)
+    pior = min(dados)
+    dias = len(dados)
+
+    projecao = media * 30
+
+    st.divider()
+    st.markdown("## 📊 Análise avançada")
+
+    c1, c2 = st.columns(2)
+    c3, c4 = st.columns(2)
+
+    c1.metric("💰 Total", f"R$ {total:.2f}")
+    c2.metric("📈 Média diária", f"R$ {media:.2f}")
+    c3.metric("🔥 Melhor dia", f"R$ {melhor:.2f}")
+    c4.metric("📉 Pior dia", f"R$ {pior:.2f}")
+
+    st.metric("📅 Dias trabalhados", dias)
+    st.metric("🚀 Projeção mensal", f"R$ {projecao:.2f}")
+
+# ========================
 # PRO
 # ========================
 st.divider()
@@ -155,46 +179,35 @@ else:
     st.markdown("### 🔓 Desbloquear PRO")
     st.markdown("Acesso completo por **R$9,90**")
 
-    # GERAR PIX
     if st.button("Pagar com PIX 💳"):
 
-        try:
-            r = requests.post(
-                "https://api.mercadopago.com/v1/payments",
-                headers={
-                    "Authorization": f"Bearer {MP_TOKEN}",
-                    "Content-Type": "application/json",
-                    "X-Idempotency-Key": str(uuid.uuid4())
-                },
-                json={
-                    "transaction_amount": 9.90,
-                    "description": "Plano PRO",
-                    "payment_method_id": "pix",
-                    "payer": {"email": email},
-                    "external_reference": email
-                }
-            )
+        r = requests.post(
+            "https://api.mercadopago.com/v1/payments",
+            headers={
+                "Authorization": f"Bearer {MP_TOKEN}",
+                "Content-Type": "application/json",
+                "X-Idempotency-Key": str(uuid.uuid4())
+            },
+            json={
+                "transaction_amount": 9.90,
+                "description": "Plano PRO",
+                "payment_method_id": "pix",
+                "payer": {"email": email},
+                "external_reference": email
+            }
+        )
 
-            pagamento = r.json()
+        pagamento = r.json()
 
-            if "id" not in pagamento:
-                st.error("Erro no pagamento")
-                st.write(pagamento)
-            else:
-                st.session_state.payment_id = pagamento["id"]
+        if "id" in pagamento:
+            st.session_state.payment_id = pagamento["id"]
 
-                data = pagamento["point_of_interaction"]["transaction_data"]
+            data = pagamento["point_of_interaction"]["transaction_data"]
 
-                st.image(f"data:image/png;base64,{data['qr_code_base64']}")
-                st.code(data["qr_code"])
+            st.image(f"data:image/png;base64,{data['qr_code_base64']}")
+            st.code(data["qr_code"])
+            st.success("Pague o PIX")
 
-                st.success("Escaneie o PIX 👆")
-
-        except Exception as e:
-            st.error("Erro")
-            st.write(str(e))
-
-    # VERIFICAR
     if st.session_state.payment_id:
 
         if st.button("Já paguei ✔"):
@@ -204,8 +217,7 @@ else:
                 headers={"Authorization": f"Bearer {MP_TOKEN}"}
             )
 
-            payment = r.json()
-            status = payment.get("status")
+            status = r.json().get("status")
 
             if status == "approved":
                 users[email]["pro"] = True
@@ -214,12 +226,6 @@ else:
                 st.success("🎉 PRO liberado!")
                 st.balloons()
                 st.rerun()
-
-            elif status == "pending":
-                st.warning("Ainda processando")
-
-            else:
-                st.error("Pagamento não aprovado")
 
 # ========================
 # LOGOUT
