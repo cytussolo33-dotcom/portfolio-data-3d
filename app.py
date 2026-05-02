@@ -20,53 +20,58 @@ def hash_senha(s):
     return hashlib.sha256(s.encode()).hexdigest()
 
 # =========================
-# SESSION
+# SESSION (FIX FORÇADO)
 # =========================
 if "logado" not in st.session_state:
     st.session_state.logado = False
-
-if "email" not in st.session_state:
-    st.session_state.email = None
+    st.session_state.email = ""
 
 # =========================
-# LOGIN
+# LOGIN BLOQUEADO
 # =========================
 if not st.session_state.logado:
 
     st.title("🔐 Login")
 
-    email = st.text_input("Email")
-    senha = st.text_input("Senha", type="password")
+    email = st.text_input("Email", key="login_email")
+    senha = st.text_input("Senha", type="password", key="login_senha")
 
-    if st.button("Entrar / Criar conta"):
+    if st.button("Entrar"):
         users = carregar()
 
-        if email in users:
-            if users[email]["senha"] == hash_senha(senha):
-                st.session_state.logado = True
-                st.session_state.email = email
-                st.rerun()
-            else:
-                st.error("Senha incorreta")
-        else:
-            users[email] = {
-                "senha": hash_senha(senha),
-                "pro": False,
-                "dados": []
-            }
-            salvar(users)
+        if email in users and users[email]["senha"] == hash_senha(senha):
             st.session_state.logado = True
             st.session_state.email = email
             st.rerun()
+        else:
+            st.error("Login inválido")
 
-    st.stop()  # 🔥 impede continuar sem login
+    if st.button("Criar conta"):
+        users = carregar()
+        users[email] = {
+            "senha": hash_senha(senha),
+            "pro": False,
+            "dados": []
+        }
+        salvar(users)
+
+        st.session_state.logado = True
+        st.session_state.email = email
+        st.rerun()
+
+    st.stop()  # 🔥 TRAVA TOTAL
 
 # =========================
-# APP PRINCIPAL
+# APP
 # =========================
-
 users = carregar()
 email = st.session_state.email
+
+# 🔥 proteção extra
+if email not in users:
+    st.session_state.logado = False
+    st.rerun()
+
 user = users[email]
 
 st.write(f"👤 {email}")
@@ -82,7 +87,7 @@ gasto = st.number_input("💸 Gasto", 0.0)
 lucro = ganho - gasto
 st.success(f"Lucro: R$ {lucro:.2f}")
 
-if st.button("💾 Salvar"):
+if st.button("💾 Salvar dia"):
     user["dados"].append(lucro)
     users[email] = user
     salvar(users)
@@ -91,10 +96,7 @@ if st.button("💾 Salvar"):
 # =========================
 # PRO
 # =========================
-
-pro = user.get("pro", False)
-
-if pro:
+if user.get("pro"):
     st.success("🚀 PRO ativo")
 
     if user["dados"]:
@@ -106,5 +108,5 @@ else:
 
     st.link_button(
         "💳 Assinar PRO",
-        "SEU_LINK_MERCADOPAGO_AQUI"
+        "https://mpago.la/SEU_LINK_AQUI"
     )
