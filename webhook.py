@@ -1,72 +1,50 @@
 from flask import Flask, request
-import mercadopago
-import os
 import json
+import os
+import requests
 
 app = Flask(__name__)
 
-ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN")
-
-if not ACCESS_TOKEN:
-    raise Exception("MP_ACCESS_TOKEN não configurado")
-
-sdk = mercadopago.SDK(ACCESS_TOKEN)
-
-# ==============================
-# BANCO
-# ==============================
-def carregar_usuarios():
+def carregar():
     if not os.path.exists("users.json"):
         return {}
-    try:
-        with open("users.json", "r") as f:
-            return json.load(f)
-    except:
-        return {}
+    with open("users.json", "r") as f:
+        return json.load(f)
 
-def salvar_usuarios(data):
+def salvar(data):
     with open("users.json", "w") as f:
         json.dump(data, f, indent=2)
 
-# ==============================
-# WEBHOOK
-# ==============================
 @app.route("/webhook", methods=["POST"])
 def webhook():
 
     data = request.json
 
-    if not data:
-        return "no data", 400
+    try:
+        if "data" in data:
+            payment_id = data["data"]["id"]
 
-    if data.get("type") == "payment":
+            url = f"https://api.mercadopago.com/v1/payments/{payment_id}"
+            headers = {"Authorization": f"Bearer {os.environ.get('MP_ACCESS_TOKEN')}"}
 
-        payment_id = data["data"]["id"]
+            r = requests.get(url, headers=headers)
+            payment = r.json()
 
-        payment = sdk.payment().get(payment_id)
-        info = payment["response"]
+            if payment["status"] == "approved":
 
-        print("📦 Pagamento recebido:", info)
+                email = payment["external_reference"]
 
-        if info.get("status") == "approved":
+                users = carregar()
 
-            email = info.get("external_reference")
+                if email in users:
+                    users[email]["pro"] = True
+                    salvar(users)
+                    print("PRO liberado:", email)
 
-            if not email:
-                return "no email", 200
+    except Exception as e:
+        print("Erro:", str(e))
 
-            users = carregar_usuarios()
+    return "ok", 200
 
-            if email in users:
-                users[email]["pro"] = True
-                salvar_usuarios(users)
-
-                print(f"🔥 {email} virou PRO!")
-
-    return "OK", 200
-
-# ==============================
-# RUN
-# ==============================
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
