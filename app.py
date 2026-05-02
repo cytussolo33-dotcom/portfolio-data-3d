@@ -114,7 +114,6 @@ if st.session_state["logado"]:
     if not st.session_state["pro"] and len(historico) >= 3:
         st.warning("🔒 Limite grátis atingido (3 dias)")
         st.info("👉 Libere o PRO para continuar usando")
-
     else:
         if st.button("💾 Salvar dia"):
             historico.append({
@@ -142,7 +141,6 @@ if st.session_state["logado"]:
             st.write(f"📅 Dias registrados: {len(df)}")
 
             st.line_chart(df["lucro"])
-
             st.dataframe(df[::-1])
 
     else:
