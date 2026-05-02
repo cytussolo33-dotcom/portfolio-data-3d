@@ -3,6 +3,7 @@ import json
 import os
 import requests
 import hashlib
+import uuid
 
 # ========================
 # CONFIG
@@ -30,6 +31,9 @@ def hash_senha(s):
 # ========================
 if "user" not in st.session_state:
     st.session_state.user = None
+
+if "payment_id" not in st.session_state:
+    st.session_state.payment_id = None
 
 # ========================
 # LOGIN
@@ -74,7 +78,7 @@ if email not in users:
 
 user = users[email]
 
-st.title("💰 Controle Financeiro PRO")
+st.title("💰 Controle Financeiro")
 st.write(f"👤 {email}")
 
 # ========================
@@ -100,6 +104,7 @@ if user.get("pro"):
 
     if user["dados"]:
         st.line_chart(user["dados"])
+
 else:
     st.warning("Plano grátis")
 
@@ -114,7 +119,8 @@ else:
 
         headers = {
             "Authorization": f"Bearer {MP_TOKEN}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "X-Idempotency-Key": str(uuid.uuid4())
         }
 
         body = {
@@ -128,7 +134,10 @@ else:
         r = requests.post(url, json=body, headers=headers)
         pagamento = r.json()
 
-        try:
+        if "id" not in pagamento:
+            st.error("Erro ao gerar pagamento")
+            st.write(pagamento)
+        else:
             st.session_state.payment_id = pagamento["id"]
 
             qr = pagamento["point_of_interaction"]["transaction_data"]["qr_code"]
@@ -139,14 +148,10 @@ else:
 
             st.info("Pague o PIX e depois clique em verificar")
 
-        except:
-            st.error("Erro ao gerar pagamento")
-            st.write(pagamento)
-
     # ========================
-    # VERIFICAR PAGAMENTO (ANTI BUG)
+    # VERIFICAR PAGAMENTO
     # ========================
-    if "payment_id" in st.session_state:
+    if st.session_state.payment_id:
 
         if st.button("✅ Já paguei, verificar"):
 
@@ -168,6 +173,7 @@ else:
 
                 st.success("🚀 PRO ativado!")
                 st.rerun()
+
             else:
                 st.warning("Pagamento ainda não aprovado")
 
