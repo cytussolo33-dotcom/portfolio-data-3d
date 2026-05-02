@@ -16,14 +16,12 @@ def get_secret(key, default=None):
 ACCESS_TOKEN = get_secret("MP_TOKEN")
 WEBHOOK_URL = get_secret("WEBHOOK_URL")
 
-# validação
+# 🔥 MODO DEV (não precisa pagar)
+DEV_MODE = True
+
 if not ACCESS_TOKEN:
     st.error("❌ MP_TOKEN não configurado nos Secrets!")
-    st.info("Vá em: Manage app → Secrets")
     st.stop()
-
-if not WEBHOOK_URL:
-    st.warning("⚠️ WEBHOOK_URL não configurado (opcional)")
 
 sdk = mercadopago.SDK(ACCESS_TOKEN)
 
@@ -97,6 +95,9 @@ if st.session_state["logado"]:
     if st.session_state["email"] in users:
         st.session_state["pro"] = users[st.session_state["email"]].get("pro", False)
 
+    # ==============================
+    # 🚀 PRO ATIVO
+    # ==============================
     if st.session_state["pro"]:
         st.success("🚀 PRO ativo")
 
@@ -105,9 +106,21 @@ if st.session_state["logado"]:
         st.write("💸 Custos: R$ 30")
         st.write("🟢 Lucro: R$ 170")
 
+    # ==============================
+    # 💳 PLANO FREE
+    # ==============================
     else:
         st.warning("Plano grátis limitado")
 
+        # 🔓 BOTÃO DEV (só pra você testar)
+        if DEV_MODE:
+            if st.button("🔓 Liberar PRO (DEV)"):
+                users[st.session_state["email"]]["pro"] = True
+                salvar_usuarios(users)
+                st.success("🔥 PRO liberado (modo DEV)")
+                st.rerun()
+
+        # 💳 PAGAMENTO REAL
         if st.button("💳 Virar PRO"):
 
             pagamento = {
@@ -135,5 +148,5 @@ if st.session_state["logado"]:
                     st.write(res)
 
             except Exception as e:
-                st.error("Erro geral ao criar pagamento")
+                st.error("Erro ao criar pagamento")
                 st.write(str(e))
