@@ -9,7 +9,7 @@ ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN")
 sdk = mercadopago.SDK(ACCESS_TOKEN)
 
 # ==============================
-# BANCO JSON (igual ao app)
+# BANCO JSON
 # ==============================
 def carregar_usuarios():
     if not os.path.exists("users.json"):
@@ -19,34 +19,61 @@ def carregar_usuarios():
 
 def salvar_usuarios(data):
     with open("users.json", "w") as f:
-        json.dump(data, f)
+        json.dump(data, f, indent=4)
 
 # ==============================
 # WEBHOOK
 # ==============================
 @app.route("/webhook", methods=["POST"])
 def webhook():
+    try:
+        data = request.json
+        print("📩 Webhook recebido:", data)
 
-    data = request.json
+        # valida evento
+        if data and data.get("type") == "payment":
 
-    if data and data.get("type") == "payment":
+            payment_id = data["data"]["id"]
+            payment = sdk.payment().get(payment_id)
 
-        payment_id = data["data"]["id"]
-        payment = sdk.payment().get(payment_id)
-        info = payment["response"]
+            if payment["status"] != 200:
+                print("❌ Erro ao buscar pagamento")
+                return "erro", 400
 
-        if info["status"] == "approved":
+            info = payment["response"]
+            status = info.get("status")
 
-            email = info["payer"]["email"]
+            print("💰 Status do pagamento:", status)
 
-            users = carregar_usuarios()
+            # só libera se aprovado
+            if status == "approved":
 
-            if email in users:
-                users[email]["pro"] = True
+                email = info["payer"]["email"]
+                print("📧 Email:", email)
+
+                users = carregar_usuarios()
+
+                # cria usuário se não existir
+                if email not in users:
+                    users[email] = {
+                        "senha": "",
+                        "pro": True
+                    }
+                else:
+                    users[email]["pro"] = True
+
                 salvar_usuarios(users)
+
                 print(f"🔥 {email} virou PRO!")
 
-    return "OK", 200
+        return "OK", 200
 
+    except Exception as e:
+        print("❌ ERRO NO WEBHOOK:", str(e))
+        return "erro", 500
+
+# ==============================
+# START
+# ==============================
 if __name__ == "__main__":
-    app.run()
+    app.run(host="0.0.0.0", port=10000)
