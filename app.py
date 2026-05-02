@@ -3,6 +3,7 @@ import mercadopago
 import json
 import os
 import hashlib
+import pandas as pd
 
 # ==============================
 # CONFIG
@@ -10,7 +11,7 @@ import hashlib
 def get_secret(key, default=None):
     try:
         return st.secrets[key]
-    except Exception:
+    except:
         return default
 
 ACCESS_TOKEN = get_secret("MP_ACCESS_TOKEN")
@@ -55,7 +56,7 @@ if "pro" not in st.session_state:
 # ==============================
 # LOGIN
 # ==============================
-st.title("SaaS Entregas PRO")
+st.title("💰 Controle de Entregas PRO")
 
 email = st.text_input("Email")
 senha = st.text_input("Senha", type="password")
@@ -84,71 +85,80 @@ if st.button("Entrar / Criar conta"):
 # ==============================
 if st.session_state["logado"]:
 
-    st.write(f"Usuario: {st.session_state['email']}")
-
     users = carregar_usuarios()
     email = st.session_state["email"]
+
+    st.write(f"👤 {email}")
 
     # Atualiza PRO
     if email in users:
         st.session_state["pro"] = users[email].get("pro", False)
 
-    # ==============================
-    # CONTROLE
-    # ==============================
-    st.subheader("Controle de entregas")
+    historico = users[email].get("historico", [])
 
-    ganho = st.number_input("Quanto ganhou hoje?", min_value=0.0)
-    gasto = st.number_input("Quanto gastou?", min_value=0.0)
+    st.markdown("## 📊 Controle diário")
+
+    ganho = st.number_input("💰 Quanto ganhou hoje?", min_value=0.0)
+    gasto = st.number_input("💸 Quanto gastou?", min_value=0.0)
 
     lucro = ganho - gasto
 
-    st.write(f"Lucro do dia: R$ {lucro:.2f}")
-
-    # Salvar
-    if st.button("Salvar dia"):
-
-        if "historico" not in users[email]:
-            users[email]["historico"] = []
-
-        users[email]["historico"].append({
-            "ganho": ganho,
-            "gasto": gasto,
-            "lucro": lucro
-        })
-
-        salvar_usuarios(users)
-        st.success("Salvo com sucesso!")
+    if lucro >= 0:
+        st.success(f"🟢 Lucro: R$ {lucro:.2f}")
+    else:
+        st.error(f"🔴 Prejuízo: R$ {lucro:.2f}")
 
     # ==============================
-    # PRO
+    # LIMITAÇÃO FREE
+    # ==============================
+    if not st.session_state["pro"] and len(historico) >= 3:
+        st.warning("🔒 Limite grátis atingido (3 dias)")
+        st.info("👉 Libere o PRO para continuar usando")
+
+    else:
+        if st.button("💾 Salvar dia"):
+            historico.append({
+                "ganho": ganho,
+                "gasto": gasto,
+                "lucro": lucro
+            })
+            users[email]["historico"] = historico
+            salvar_usuarios(users)
+            st.success("Dia salvo!")
+
+    # ==============================
+    # PRO FEATURES
     # ==============================
     if st.session_state["pro"]:
 
-        st.subheader("Historico")
+        st.markdown("## 📈 Seu desempenho")
 
-        historico = users[email].get("historico", [])
+        df = pd.DataFrame(historico)
 
-        total = sum(d["lucro"] for d in historico)
+        if not df.empty:
+            total = df["lucro"].sum()
 
-        st.write(f"Lucro total: R$ {total:.2f}")
-        st.write(f"Dias registrados: {len(historico)}")
+            st.write(f"💰 Lucro total: R$ {total:.2f}")
+            st.write(f"📅 Dias registrados: {len(df)}")
 
-        for d in historico[::-1]:
-            st.write(f"Ganhou: {d['ganho']} | Gastou: {d['gasto']} | Lucro: {d['lucro']}")
+            st.line_chart(df["lucro"])
+
+            st.dataframe(df[::-1])
 
     else:
-        st.warning("Plano gratis limitado")
+        st.markdown("## 🚀 Liberar PRO")
 
-        if st.button("Virar PRO"):
+        st.write("✔ Histórico completo")
+        st.write("✔ Gráficos de lucro")
+        st.write("✔ Uso ilimitado")
+
+        if st.button("💳 Assinar por R$9,90"):
 
             pagamento = {
                 "transaction_amount": 9.90,
                 "description": "Plano PRO",
                 "payment_method_id": "pix",
-                "payer": {
-                    "email": email
-                },
+                "payer": {"email": email},
                 "external_reference": email,
                 "notification_url": WEBHOOK_URL
             }
@@ -162,11 +172,9 @@ if st.session_state["logado"]:
 
                     st.image(f"data:image/png;base64,{td['qr_code_base64']}")
                     st.code(td["qr_code"])
-                    st.info("Pague o PIX e depois atualize a pagina.")
+                    st.info("💡 Pague o PIX e atualize a página")
                 else:
                     st.error("Erro ao gerar pagamento")
-                    st.write(res)
 
             except Exception as e:
-                st.error("Erro no pagamento")
-                st.write(str(e))
+                st.error(str(e))
