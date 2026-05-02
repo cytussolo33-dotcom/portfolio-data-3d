@@ -1,8 +1,8 @@
 import streamlit as st
 import mercadopago
-import firebase_admin
-from firebase_admin import credentials, firestore
 import hashlib
+import json
+import os
 
 # ==============================
 # CONFIG
@@ -13,13 +13,17 @@ WEBHOOK_URL = st.secrets["WEBHOOK_URL"]
 sdk = mercadopago.SDK(ACCESS_TOKEN)
 
 # ==============================
-# FIREBASE (CORRIGIDO)
+# BANCO JSON
 # ==============================
-if not firebase_admin._apps:
-    cred = credentials.Certificate(st.secrets["firebase"])
-    firebase_admin.initialize_app(cred)
+def carregar_usuarios():
+    if not os.path.exists("users.json"):
+        return {}
+    with open("users.json", "r") as f:
+        return json.load(f)
 
-db = firestore.client()
+def salvar_usuarios(data):
+    with open("users.json", "w") as f:
+        json.dump(data, f)
 
 # ==============================
 # SEGURANÇA
@@ -47,26 +51,24 @@ st.title("💰 SaaS Entregas PRO")
 email = st.text_input("Email")
 senha = st.text_input("Senha", type="password")
 
+users = carregar_usuarios()
+
 if st.button("Entrar / Criar conta"):
 
-    user_ref = db.collection("users").document(email)
-    user = user_ref.get()
-
-    if user.exists:
-        data = user.to_dict()
-
-        if data["senha"] == hash_senha(senha):
+    if email in users:
+        if users[email]["senha"] == hash_senha(senha):
             st.session_state["logado"] = True
             st.session_state["email"] = email
-            st.session_state["pro"] = data.get("pro", False)
+            st.session_state["pro"] = users[email].get("pro", False)
             st.success("Login feito!")
         else:
             st.error("Senha incorreta")
     else:
-        user_ref.set({
+        users[email] = {
             "senha": hash_senha(senha),
             "pro": False
-        })
+        }
+        salvar_usuarios(users)
         st.success("Conta criada!")
 
 # ==============================
@@ -76,9 +78,8 @@ if st.session_state["logado"]:
 
     st.write(f"👤 {st.session_state['email']}")
 
-    user = db.collection("users").document(st.session_state["email"]).get()
-    if user.exists:
-        st.session_state["pro"] = user.to_dict().get("pro", False)
+    users = carregar_usuarios()
+    st.session_state["pro"] = users[st.session_state["email"]]["pro"]
 
     if st.session_state["pro"]:
         st.success("🚀 PRO ativo")
@@ -98,7 +99,7 @@ if st.session_state["logado"]:
                 "description": "Plano PRO",
                 "payment_method_id": "pix",
                 "payer": {
-                    "email": "test_user_123@test.com"  # evita erro de credencial
+                    "email": st.session_state["email"]
                 },
                 "notification_url": WEBHOOK_URL
             }
@@ -111,7 +112,7 @@ if st.session_state["logado"]:
 
                 st.image(f"data:image/png;base64,{td['qr_code_base64']}")
                 st.code(td["qr_code"])
-                st.info("Após pagar, o acesso será liberado automaticamente.")
+                st.info("Após pagar, atualize a página.")
             else:
                 st.error("Erro ao gerar pagamento")
                 st.write(res)
