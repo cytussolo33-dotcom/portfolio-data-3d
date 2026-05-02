@@ -1,5 +1,4 @@
 import streamlit as st
-import mercadopago
 import json
 import os
 import hashlib
@@ -7,13 +6,10 @@ import hashlib
 # =========================
 # CONFIG
 # =========================
-ACCESS_TOKEN = st.secrets["MP_ACCESS_TOKEN"]
-WEBHOOK_URL = st.secrets["WEBHOOK_URL"]
-
-sdk = mercadopago.SDK(ACCESS_TOKEN)
+st.set_page_config(page_title="Controle PRO", layout="centered")
 
 # =========================
-# BANCO
+# DATABASE
 # =========================
 def carregar():
     if not os.path.exists("users.json"):
@@ -25,20 +21,19 @@ def salvar(data):
     with open("users.json", "w") as f:
         json.dump(data, f, indent=2)
 
-def hash_senha(s):
-    return hashlib.sha256(s.encode()).hexdigest()
+def hash_senha(senha):
+    return hashlib.sha256(senha.encode()).hexdigest()
 
 # =========================
 # SESSION
 # =========================
-if "logado" not in st.session_state:
-    st.session_state.logado = False
-    st.session_state.email = ""
+if "user" not in st.session_state:
+    st.session_state.user = None
 
 # =========================
 # LOGIN
 # =========================
-if not st.session_state.logado:
+if not st.session_state.user:
 
     st.title("🔐 Login")
 
@@ -48,87 +43,78 @@ if not st.session_state.logado:
     if st.button("Entrar / Criar conta"):
         users = carregar()
 
+        senha_hash = hash_senha(senha)
+
         if email in users:
-            if users[email]["senha"] == hash_senha(senha):
-                st.session_state.logado = True
-                st.session_state.email = email
+            if users[email]["senha"] == senha_hash:
+                st.session_state.user = email
                 st.rerun()
             else:
-                st.error("Senha incorreta")
+                st.error("Senha errada")
         else:
             users[email] = {
-                "senha": hash_senha(senha),
+                "senha": senha_hash,
                 "pro": False,
                 "dados": []
             }
             salvar(users)
-            st.session_state.logado = True
-            st.session_state.email = email
+            st.success("Conta criada!")
+            st.session_state.user = email
             st.rerun()
-
-    st.stop()
 
 # =========================
 # APP
 # =========================
-users = carregar()
-email = st.session_state.email
-
-if email not in users:
-    st.session_state.logado = False
-    st.rerun()
-
-user = users[email]
-
-st.title("💰 Controle PRO")
-st.write(f"👤 {email}")
-
-# =========================
-# CONTROLE
-# =========================
-ganho = st.number_input("💰 Ganho", 0.0)
-gasto = st.number_input("💸 Gasto", 0.0)
-
-lucro = ganho - gasto
-st.success(f"Lucro: R$ {lucro:.2f}")
-
-if st.button("💾 Salvar"):
-    user["dados"].append(lucro)
-    users[email] = user
-    salvar(users)
-    st.success("Salvo!")
-
-# =========================
-# PRO
-# =========================
-if user.get("pro"):
-    st.success("🚀 PRO ativo")
-
-    if user["dados"]:
-        st.line_chart(user["dados"])
 else:
-    st.warning("Plano grátis")
 
-    st.markdown("## 🚀 Virar PRO")
+    email = st.session_state.user
+    users = carregar()
 
-    if st.button("💳 Pagar com PIX"):
-        pagamento = {
-            "transaction_amount": 9.90,
-            "description": "Plano PRO",
-            "payment_method_id": "pix",
-            "payer": {"email": email},
-            "external_reference": email,
-            "notification_url": WEBHOOK_URL
-        }
+    # 🔒 segurança real
+    user_data = users.get(email, {"pro": False, "dados": []})
+    is_pro = user_data.get("pro", False)
 
-        res = sdk.payment().create(pagamento)
+    st.title("💼 Controle Financeiro PRO")
+    st.write(f"👤 {email}")
 
-        if res["status"] == 201:
-            data = res["response"]["point_of_interaction"]["transaction_data"]
+    ganho = st.number_input("💰 Ganho", min_value=0.0)
+    gasto = st.number_input("💸 Gasto", min_value=0.0)
 
-            st.image(f"data:image/png;base64,{data['qr_code_base64']}")
-            st.code(data["qr_code"])
-            st.info("Pague o PIX e aguarde. Depois atualize a página.")
+    lucro = ganho - gasto
+    st.success(f"Lucro: R$ {lucro:.2f}")
+
+    if st.button("Salvar dia"):
+        user_data["dados"].append(lucro)
+        users[email] = user_data
+        salvar(users)
+        st.success("Salvo!")
+
+    # =========================
+    # PRO
+    # =========================
+    if is_pro:
+        st.subheader("🚀 Área PRO")
+
+        dados = user_data.get("dados", [])
+        if dados:
+            st.line_chart(dados)
         else:
-            st.error("Erro ao gerar pagamento")
-            st.write(res)
+            st.info("Sem dados ainda")
+
+    else:
+        st.warning("Plano grátis")
+
+        st.subheader("🚀 Liberar PRO")
+
+        st.write("✔ Histórico completo")
+        st.write("✔ Gráficos")
+        st.write("✔ Uso ilimitado")
+
+        st.link_button(
+            "💳 Pagar com PIX",
+            "COLOCA_SEU_LINK_DO_MERCADOPAGO_AQUI"
+        )
+
+    if st.button("Sair"):
+        st.session_state.user = None
+        st.rerun()
