@@ -3,6 +3,7 @@ import mercadopago
 import json
 import os
 import hashlib
+import time
 
 # ==============================
 # CONFIG
@@ -19,9 +20,6 @@ WEBHOOK_URL = get_secret("WEBHOOK_URL")
 if not ACCESS_TOKEN:
     st.error("❌ MP_ACCESS_TOKEN não configurado!")
     st.stop()
-
-if not WEBHOOK_URL:
-    st.warning("⚠️ WEBHOOK_URL não configurado — PRO não será automático")
 
 sdk = mercadopago.SDK(ACCESS_TOKEN)
 
@@ -59,6 +57,9 @@ if "email" not in st.session_state:
 if "pro" not in st.session_state:
     st.session_state["pro"] = False
 
+if "pagamento_gerado" not in st.session_state:
+    st.session_state["pagamento_gerado"] = False
+
 # ==============================
 # LOGIN
 # ==============================
@@ -94,7 +95,7 @@ if st.session_state["logado"]:
 
     users = carregar_usuarios()
 
-    # atualiza status PRO sempre do banco
+    # atualiza status PRO
     if st.session_state["email"] in users:
         st.session_state["pro"] = users[st.session_state["email"]].get("pro", False)
 
@@ -115,34 +116,47 @@ if st.session_state["logado"]:
     else:
         st.warning("Plano grátis limitado")
 
-        # 💳 PAGAMENTO REAL (única forma de liberar)
-        if st.button("💳 Virar PRO"):
+        # botão único (evita spam)
+        if not st.session_state["pagamento_gerado"]:
+            if st.button("💳 Virar PRO"):
 
-            pagamento = {
-                "transaction_amount": 9.90,
-                "description": "Plano PRO",
-                "payment_method_id": "pix",
-                "payer": {
-                    "email": st.session_state["email"]
-                },
-                "external_reference": st.session_state["email"],  # 🔥 ESSENCIAL
-                "notification_url": WEBHOOK_URL
-            }
+                pagamento = {
+                    "transaction_amount": 9.90,
+                    "description": "Plano PRO",
+                    "payment_method_id": "pix",
+                    "payer": {
+                        "email": st.session_state["email"]
+                    },
+                    "external_reference": st.session_state["email"],
+                    "notification_url": WEBHOOK_URL
+                }
 
-            try:
-                res = sdk.payment().create(pagamento)
+                try:
+                    res = sdk.payment().create(pagamento)
 
-                if res["status"] == 201:
-                    data = res["response"]
-                    td = data["point_of_interaction"]["transaction_data"]
+                    if res["status"] == 201:
+                        data = res["response"]
+                        td = data["point_of_interaction"]["transaction_data"]
 
-                    st.image(f"data:image/png;base64,{td['qr_code_base64']}")
-                    st.code(td["qr_code"])
-                    st.info("Pague o PIX. Após a confirmação, atualize a página.")
-                else:
-                    st.error("Erro ao gerar pagamento")
-                    st.write(res)
+                        st.session_state["qr"] = td["qr_code_base64"]
+                        st.session_state["pix"] = td["qr_code"]
+                        st.session_state["pagamento_gerado"] = True
 
-            except Exception as e:
-                st.error("Erro no pagamento")
-                st.write(str(e))
+                    else:
+                        st.error("Erro ao gerar pagamento")
+                        st.write(res)
+
+                except Exception as e:
+                    st.error("Erro no pagamento")
+                    st.write(str(e))
+
+        # mostra QR persistente
+        if st.session_state["pagamento_gerado"]:
+            st.image(f"data:image/png;base64,{st.session_state['qr']}")
+            st.code(st.session_state["pix"])
+
+            st.info("Pague o PIX. Após pagar, aguarde alguns segundos e clique abaixo.")
+
+            if st.button("🔄 Já paguei / Atualizar"):
+                time.sleep(2)
+                st.rerun()
