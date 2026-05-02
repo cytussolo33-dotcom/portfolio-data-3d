@@ -1,9 +1,10 @@
 from flask import Flask, request
 import mercadopago
+import os
 
 app = Flask(__name__)
 
-sdk = mercadopago.SDK("APP_USR-4942813099956982-050118-47ab93b27d9acf41b0390203733dad02-3369029229")
+sdk = mercadopago.SDK(os.getenv("MP_ACCESS_TOKEN"))
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
@@ -25,5 +26,3 @@ def webhook():
                 f.write(email + "\n")
 
     return "OK", 200
-
-app.run(host="0.0.0.0", port=10000)
