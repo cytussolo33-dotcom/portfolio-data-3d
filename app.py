@@ -96,7 +96,7 @@ if st.session_state["logado"]:
 
     users = carregar_usuarios()
 
-    # sempre atualiza do JSON
+    # atualiza status PRO do JSON
     if st.session_state["email"] in users:
         st.session_state["pro"] = users[st.session_state["email"]].get("pro", False)
 
@@ -135,6 +135,7 @@ if st.session_state["logado"]:
                 "payer": {
                     "email": st.session_state["email"]
                 },
+                "external_reference": st.session_state["email"],  # 🔥 ESSENCIAL
                 "notification_url": WEBHOOK_URL
             }
 
@@ -147,7 +148,7 @@ if st.session_state["logado"]:
 
                     st.image(f"data:image/png;base64,{td['qr_code_base64']}")
                     st.code(td["qr_code"])
-                    st.info("Pague o PIX e depois atualize a página para liberar o PRO.")
+                    st.info("Pague o PIX e aguarde alguns segundos, depois atualize a página.")
                 else:
                     st.error("Erro ao gerar pagamento")
                     st.write(res)
