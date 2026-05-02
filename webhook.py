@@ -48,7 +48,11 @@ def webhook():
 
         if info.get("status") == "approved":
 
-            email = info["payer"]["email"]
+            # 🔥 PEGA DO external_reference (AGORA FUNCIONA SEMPRE)
+            email = info.get("external_reference")
+
+            if not email:
+                return "no email", 200
 
             users = carregar_usuarios()
 
@@ -59,8 +63,6 @@ def webhook():
 
     return "OK", 200
 
-# ==============================
-# RUN (Render usa isso)
-# ==============================
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
