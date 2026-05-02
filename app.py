@@ -16,9 +16,6 @@ def salvar(data):
     with open("users.json", "w") as f:
         json.dump(data, f, indent=2)
 
-# =========================
-# SEGURANÇA
-# =========================
 def hash_senha(s):
     return hashlib.sha256(s.encode()).hexdigest()
 
@@ -27,106 +24,87 @@ def hash_senha(s):
 # =========================
 if "logado" not in st.session_state:
     st.session_state.logado = False
+
+if "email" not in st.session_state:
     st.session_state.email = None
 
 # =========================
 # LOGIN
 # =========================
-st.title("💰 Controle de Entregas PRO")
+if not st.session_state.logado:
 
-email = st.text_input("Email")
-senha = st.text_input("Senha", type="password")
+    st.title("🔐 Login")
 
-if st.button("Entrar / Criar conta"):
-    users = carregar()
+    email = st.text_input("Email")
+    senha = st.text_input("Senha", type="password")
 
-    if email in users:
-        if users[email]["senha"] == hash_senha(senha):
+    if st.button("Entrar / Criar conta"):
+        users = carregar()
+
+        if email in users:
+            if users[email]["senha"] == hash_senha(senha):
+                st.session_state.logado = True
+                st.session_state.email = email
+                st.rerun()
+            else:
+                st.error("Senha incorreta")
+        else:
+            users[email] = {
+                "senha": hash_senha(senha),
+                "pro": False,
+                "dados": []
+            }
+            salvar(users)
             st.session_state.logado = True
             st.session_state.email = email
-            st.success("Login feito!")
-        else:
-            st.error("Senha incorreta")
-    else:
-        users[email] = {
-            "senha": hash_senha(senha),
-            "pro": False,
-            "dados": []
-        }
-        salvar(users)
-        st.session_state.logado = True
-        st.session_state.email = email
-        st.success("Conta criada!")
+            st.rerun()
+
+    st.stop()  # 🔥 impede continuar sem login
 
 # =========================
-# AREA LOGADA
+# APP PRINCIPAL
 # =========================
-if st.session_state.logado:
 
-    users = carregar()
-    email = st.session_state.email
+users = carregar()
+email = st.session_state.email
+user = users[email]
 
-    if email not in users:
-        st.error("Usuário não encontrado")
-        st.stop()
+st.write(f"👤 {email}")
 
-    user = users[email]
+# =========================
+# CONTROLE
+# =========================
+st.markdown("## 📊 Controle diário")
 
-    st.write(f"👤 {email}")
+ganho = st.number_input("💰 Ganho", 0.0)
+gasto = st.number_input("💸 Gasto", 0.0)
 
-    # 🔥 PRO vem SOMENTE do banco
-    pro = user.get("pro", False)
+lucro = ganho - gasto
+st.success(f"Lucro: R$ {lucro:.2f}")
 
-    st.markdown("## 📊 Controle diário")
+if st.button("💾 Salvar"):
+    user["dados"].append(lucro)
+    users[email] = user
+    salvar(users)
+    st.success("Salvo!")
 
-    ganho = st.number_input("💰 Quanto ganhou hoje?", min_value=0.0)
-    gasto = st.number_input("💸 Quanto gastou?", min_value=0.0)
+# =========================
+# PRO
+# =========================
 
-    lucro = ganho - gasto
+pro = user.get("pro", False)
 
-    if lucro >= 0:
-        st.success(f"🟢 Lucro: R$ {lucro:.2f}")
-    else:
-        st.error(f"🔴 Prejuízo: R$ {lucro:.2f}")
+if pro:
+    st.success("🚀 PRO ativo")
 
-    # =========================
-    # SALVAR DIA
-    # =========================
-    if st.button("💾 Salvar dia"):
+    if user["dados"]:
+        st.line_chart(user["dados"])
+else:
+    st.warning("Plano grátis")
 
-        if "dados" not in user:
-            user["dados"] = []
+    st.markdown("## 🚀 Liberar PRO")
 
-        user["dados"].append(lucro)
-        users[email] = user
-        salvar(users)
-
-        st.success("Dia salvo!")
-
-    # =========================
-    # PRO
-    # =========================
-    if pro:
-        st.success("🚀 Você é PRO!")
-
-        st.subheader("📈 Histórico")
-
-        if user.get("dados"):
-            st.line_chart(user["dados"])
-        else:
-            st.info("Sem dados ainda")
-
-    else:
-        st.warning("Plano grátis limitado")
-
-        st.markdown("## 🚀 Liberar PRO")
-
-        st.write("✔ Histórico completo")
-        st.write("✔ Gráficos de lucro")
-        st.write("✔ Uso ilimitado")
-
-        # 🔥 IMPORTANTE: NÃO ativa PRO aqui
-        st.link_button(
-            "💳 Assinar PRO",
-            "COLOCA_SEU_LINK_DO_MERCADOPAGO_AQUI"
-        )
+    st.link_button(
+        "💳 Assinar PRO",
+        "SEU_LINK_MERCADOPAGO_AQUI"
+    )
