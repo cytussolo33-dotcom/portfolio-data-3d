@@ -13,15 +13,17 @@ def get_secret(key, default=None):
     except Exception:
         return default
 
-ACCESS_TOKEN = get_secret("MP_TOKEN")
+ACCESS_TOKEN = get_secret("MP_ACCESS_TOKEN")
 WEBHOOK_URL = get_secret("WEBHOOK_URL")
 
-# 🔥 modo dev (pode desligar depois)
-DEV_MODE = True
+DEV_MODE = True  # desligar depois
 
 if not ACCESS_TOKEN:
-    st.error("❌ MP_TOKEN não configurado!")
+    st.error("❌ MP_ACCESS_TOKEN não configurado!")
     st.stop()
+
+if not WEBHOOK_URL:
+    st.warning("⚠️ WEBHOOK_URL não configurado — PRO não será automático")
 
 sdk = mercadopago.SDK(ACCESS_TOKEN)
 
@@ -31,12 +33,15 @@ sdk = mercadopago.SDK(ACCESS_TOKEN)
 def carregar_usuarios():
     if not os.path.exists("users.json"):
         return {}
-    with open("users.json", "r") as f:
-        return json.load(f)
+    try:
+        with open("users.json", "r") as f:
+            return json.load(f)
+    except:
+        return {}
 
 def salvar_usuarios(data):
     with open("users.json", "w") as f:
-        json.dump(data, f)
+        json.dump(data, f, indent=2)
 
 # ==============================
 # SEGURANÇA
@@ -91,7 +96,7 @@ if st.session_state["logado"]:
 
     users = carregar_usuarios()
 
-    # 🔥 aqui agora SEMPRE puxa do JSON atualizado
+    # sempre atualiza do JSON
     if st.session_state["email"] in users:
         st.session_state["pro"] = users[st.session_state["email"]].get("pro", False)
 
@@ -142,7 +147,7 @@ if st.session_state["logado"]:
 
                     st.image(f"data:image/png;base64,{td['qr_code_base64']}")
                     st.code(td["qr_code"])
-                    st.info("Pague o PIX para liberar o PRO automaticamente.")
+                    st.info("Pague o PIX e depois atualize a página para liberar o PRO.")
                 else:
                     st.error("Erro ao gerar pagamento")
                     st.write(res)
