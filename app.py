@@ -1,178 +1,92 @@
 import streamlit as st
-import mercadopago
 import json
 import os
 import hashlib
-import pandas as pd
 
-# ==============================
-# CONFIG
-# ==============================
-def get_secret(key, default=None):
-    try:
-        return st.secrets[key]
-    except:
-        return default
-
-ACCESS_TOKEN = get_secret("MP_ACCESS_TOKEN")
-WEBHOOK_URL = get_secret("WEBHOOK_URL")
-
-sdk = mercadopago.SDK(ACCESS_TOKEN)
-
-# ==============================
-# BANCO
-# ==============================
-def carregar_usuarios():
+# =========================
+# Funções de usuário
+# =========================
+def carregar():
     if not os.path.exists("users.json"):
         return {}
-    try:
-        with open("users.json", "r") as f:
-            return json.load(f)
-    except:
-        return {}
+    with open("users.json", "r") as f:
+        return json.load(f)
 
-def salvar_usuarios(data):
+def salvar(data):
     with open("users.json", "w") as f:
         json.dump(data, f, indent=2)
 
-# ==============================
-# SEGURANÇA
-# ==============================
-def hash_senha(senha):
-    return hashlib.sha256(senha.encode()).hexdigest()
+def hash_senha(s):
+    return hashlib.sha256(s.encode()).hexdigest()
 
-# ==============================
-# SESSION
-# ==============================
+# =========================
+# Sessão
+# =========================
 if "logado" not in st.session_state:
-    st.session_state["logado"] = False
+    st.session_state.logado = False
+    st.session_state.email = None
 
-if "email" not in st.session_state:
-    st.session_state["email"] = None
-
-if "pro" not in st.session_state:
-    st.session_state["pro"] = False
-
-# ==============================
-# LOGIN
-# ==============================
-st.title("💰 Controle de Entregas PRO")
+# =========================
+# Login
+# =========================
+st.title("🚚 SaaS Entregas PRO")
 
 email = st.text_input("Email")
 senha = st.text_input("Senha", type="password")
 
 if st.button("Entrar / Criar conta"):
-    users = carregar_usuarios()
+    users = carregar()
+    senha_hash = hash_senha(senha)
 
     if email in users:
-        if users[email]["senha"] == hash_senha(senha):
-            st.session_state["logado"] = True
-            st.session_state["email"] = email
+        if users[email]["senha"] == senha_hash:
+            st.session_state.logado = True
+            st.session_state.email = email
             st.success("Login feito!")
         else:
-            st.error("Senha incorreta")
+            st.error("Senha errada")
     else:
-        users[email] = {
-            "senha": hash_senha(senha),
-            "pro": False,
-            "historico": []
-        }
-        salvar_usuarios(users)
+        users[email] = {"senha": senha_hash, "pro": False}
+        salvar(users)
         st.success("Conta criada!")
 
-# ==============================
-# AREA LOGADA
-# ==============================
-if st.session_state["logado"]:
+# =========================
+# Área logada
+# =========================
+if st.session_state.logado:
 
-    users = carregar_usuarios()
-    email = st.session_state["email"]
+    st.write("Usuário:", st.session_state.email)
 
-    st.write(f"👤 {email}")
+    st.header("📊 Controle diário")
 
-    # Atualiza PRO
-    if email in users:
-        st.session_state["pro"] = users[email].get("pro", False)
-
-    historico = users[email].get("historico", [])
-
-    st.markdown("## 📊 Controle diário")
-
-    ganho = st.number_input("💰 Quanto ganhou hoje?", min_value=0.0)
-    gasto = st.number_input("💸 Quanto gastou?", min_value=0.0)
+    ganho = st.number_input("Quanto ganhou hoje?", value=0.0)
+    gasto = st.number_input("Quanto gastou?", value=0.0)
 
     lucro = ganho - gasto
+    st.success(f"Lucro: R$ {lucro:.2f}")
 
-    if lucro >= 0:
-        st.success(f"🟢 Lucro: R$ {lucro:.2f}")
+    if st.button("Salvar dia"):
+        st.success("Dia salvo!")
+
+    # =========================
+    # PRO
+    # =========================
+    users = carregar()
+    user = users.get(st.session_state.email, {})
+
+    if user.get("pro"):
+        st.success("🚀 Você é PRO!")
+        st.write("✔ Histórico completo")
+        st.write("✔ Gráficos liberados")
     else:
-        st.error(f"🔴 Prejuízo: R$ {lucro:.2f}")
+        st.warning("Plano grátis")
 
-    # ==============================
-    # LIMITAÇÃO FREE
-    # ==============================
-    if not st.session_state["pro"] and len(historico) >= 3:
-        st.warning("🔒 Limite grátis atingido (3 dias)")
-        st.info("👉 Libere o PRO para continuar usando")
-    else:
-        if st.button("💾 Salvar dia"):
-            historico.append({
-                "ganho": ganho,
-                "gasto": gasto,
-                "lucro": lucro
-            })
-            users[email]["historico"] = historico
-            salvar_usuarios(users)
-            st.success("Dia salvo!")
-
-    # ==============================
-    # PRO FEATURES
-    # ==============================
-    if st.session_state["pro"]:
-
-        st.markdown("## 📈 Seu desempenho")
-
-        df = pd.DataFrame(historico)
-
-        if not df.empty:
-            total = df["lucro"].sum()
-
-            st.write(f"💰 Lucro total: R$ {total:.2f}")
-            st.write(f"📅 Dias registrados: {len(df)}")
-
-            st.line_chart(df["lucro"])
-            st.dataframe(df[::-1])
-
-    else:
-        st.markdown("## 🚀 Liberar PRO")
-
+        st.subheader("🚀 Liberar PRO")
         st.write("✔ Histórico completo")
         st.write("✔ Gráficos de lucro")
         st.write("✔ Uso ilimitado")
 
-        if st.button("💳 Assinar por R$9,90"):
-
-            pagamento = {
-                "transaction_amount": 9.90,
-                "description": "Plano PRO",
-                "payment_method_id": "pix",
-                "payer": {"email": email},
-                "external_reference": email,
-                "notification_url": WEBHOOK_URL
-            }
-
-            try:
-                res = sdk.payment().create(pagamento)
-
-                if res["status"] == 201:
-                    data = res["response"]
-                    td = data["point_of_interaction"]["transaction_data"]
-
-                    st.image(f"data:image/png;base64,{td['qr_code_base64']}")
-                    st.code(td["qr_code"])
-                    st.info("💡 Pague o PIX e atualize a página")
-                else:
-                    st.error("Erro ao gerar pagamento")
-
-            except Exception as e:
-                st.error(str(e))
+        st.link_button(
+            "💳 Assinar por R$9,90",
+            "https://www.mercadopago.com.br"  # depois colocamos o seu link real
+        )
