@@ -4,6 +4,7 @@ import os
 
 app = Flask(__name__)
 
+# pega o token do Render (Environment Variables)
 sdk = mercadopago.SDK(os.getenv("MP_ACCESS_TOKEN"))
 
 @app.route("/webhook", methods=["POST"])
@@ -11,7 +12,7 @@ def webhook():
 
     data = request.json
 
-    if data.get("type") == "payment":
+    if data and data.get("type") == "payment":
 
         payment_id = data["data"]["id"]
         payment = sdk.payment().get(payment_id)
