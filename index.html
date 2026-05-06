@@ -5,31 +5,46 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Internet Fibra Ultra Rápida</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
 
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Poppins;}
-body{background:#050505;color:#fff;}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif;}
 
-.container{max-width:1200px;margin:auto;padding:20px;}
+body{
+background:#050505;
+color:#fff;
+}
 
+/* CONTAINER */
+.container{
+max-width:1200px;
+margin:auto;
+padding:20px;
+}
+
+/* HEADER */
 header{
 display:flex;
 justify-content:space-between;
 align-items:center;
 }
 
-.logo{font-size:24px;font-weight:900;color:#00ff88;}
+.logo{
+font-size:24px;
+font-weight:800;
+color:#00ff88;
+}
 
 .btn{
 background:#00ff88;
 color:#000;
-padding:12px 20px;
+padding:12px 22px;
 border-radius:8px;
-font-weight:600;
 text-decoration:none;
+font-weight:600;
 }
 
+/* HERO */
 .hero{
 display:flex;
 align-items:center;
@@ -37,34 +52,67 @@ justify-content:space-between;
 min-height:90vh;
 }
 
+.hero-text{
+max-width:600px;
+}
+
 .hero h1{
 font-size:48px;
 line-height:1.2;
 }
 
-.hero span{color:#00ff88;}
+.green{
+color:#00ff88;
+}
 
-.hero p{margin:20px 0;color:#aaa;}
+.hero p{
+margin:20px 0;
+color:#aaa;
+}
 
-.cards{
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+.hero img{
+width:400px;
+border-radius:20px;
+}
+
+/* FEATURES */
+.features{
+display:flex;
 gap:20px;
 margin-top:40px;
 }
 
-.card{
+.feature{
+flex:1;
 background:#111;
-border:1px solid #222;
-padding:25px;
-border-radius:12px;
+padding:20px;
+border-radius:10px;
 text-align:center;
-transition:.3s;
 }
 
-.card:hover{
-transform:scale(1.05);
-border-color:#00ff88;
+/* PLANS */
+.plans{
+margin-top:80px;
+text-align:center;
+}
+
+.plan-grid{
+display:flex;
+gap:20px;
+margin-top:30px;
+flex-wrap:wrap;
+}
+
+.plan{
+flex:1;
+background:#111;
+padding:25px;
+border-radius:15px;
+border:1px solid #222;
+}
+
+.plan h2{
+font-size:28px;
 }
 
 .price{
@@ -73,94 +121,167 @@ color:#00ff88;
 margin:10px 0;
 }
 
-.badge{
-background:#00ff88;
-color:#000;
-padding:5px 10px;
-border-radius:20px;
-font-size:12px;
+.plan ul{
+list-style:none;
+margin:15px 0;
 }
 
-.whatsapp{
-position:fixed;
-bottom:20px;
-right:20px;
-background:#00ff88;
-color:#000;
-padding:15px;
-border-radius:50%;
-font-size:20px;
+.plan ul li{
+margin:8px 0;
 }
 
-footer{
-margin-top:60px;
+.plan button{
+width:100%;
+padding:12px;
+background:#00ff88;
+border:none;
+border-radius:8px;
+font-weight:600;
+cursor:pointer;
+}
+
+/* TESTIMONIALS */
+.testimonials{
+margin-top:80px;
+}
+
+.cards{
+display:flex;
+gap:20px;
+flex-wrap:wrap;
+}
+
+.card{
+background:#111;
 padding:20px;
+border-radius:10px;
+flex:1;
+}
+
+/* CTA */
+.cta{
+margin-top:80px;
+background:#00ff88;
+color:#000;
+padding:30px;
+text-align:center;
+border-radius:15px;
+}
+
+/* FOOTER */
+footer{
+margin-top:50px;
 text-align:center;
 color:#777;
 }
 
-@media(max-width:768px){
-.hero{flex-direction:column;text-align:center;}
-.hero h1{font-size:32px;}
+/* RESPONSIVO */
+@media(max-width:900px){
+.hero{
+flex-direction:column;
+text-align:center;
+}
+
+.hero img{
+margin-top:20px;
+width:100%;
+}
+
+.plan-grid{
+flex-direction:column;
+}
 }
 </style>
 </head>
 
 <body>
 
-<header class="container">
+<div class="container">
+
+<header>
 <div class="logo">ORIXINET</div>
-<a href="#" class="btn">WhatsApp</a>
+<a class="btn" href="#">WhatsApp</a>
 </header>
 
-<section class="hero container">
-<div>
-<h1>Internet rápida,<br><span>estável e sem dor de cabeça</span></h1>
-<p>Fibra óptica real para jogar, trabalhar e assistir sem travar.</p>
-<a href="#" class="btn">Contratar agora</a>
+<section class="hero">
+<div class="hero-text">
+<h1>Internet rápida, estável e <span class="green">sem dor de cabeça</span></h1>
+<p>Conexão fibra óptica para você trabalhar, jogar e assistir sem travar.</p>
+<a class="btn" href="#">Contratar agora</a>
+
+<div class="features">
+<div class="feature">⚡ Instalação rápida</div>
+<div class="feature">📞 Suporte top</div>
+<div class="feature">📶 Wi-Fi incluso</div>
+</div>
+
+</div>
+
+<img src="https://images.unsplash.com/photo-1605902711622-cfb43c44367f" alt="">
+</section>
+
+<section class="plans">
+<h2>Planos</h2>
+
+<div class="plan-grid">
+
+<div class="plan">
+<h2>200 MEGA</h2>
+<div class="price">R$ 99,90</div>
+<ul>
+<li>Fibra óptica</li>
+<li>Wi-Fi incluso</li>
+<li>Suporte</li>
+</ul>
+<button>Assinar</button>
+</div>
+
+<div class="plan">
+<h2>400 MEGA</h2>
+<div class="price">R$ 129,90</div>
+<ul>
+<li>Fibra óptica</li>
+<li>Wi-Fi incluso</li>
+<li>Suporte</li>
+</ul>
+<button>Assinar</button>
+</div>
+
+<div class="plan">
+<h2>600 MEGA</h2>
+<div class="price">R$ 149,90</div>
+<ul>
+<li>Fibra óptica</li>
+<li>Wi-Fi incluso</li>
+<li>Suporte</li>
+</ul>
+<button>Assinar</button>
+</div>
+
 </div>
 </section>
 
-<section class="container">
-<h2>Planos que cabem no seu bolso</h2>
+<section class="testimonials">
+<h2>Clientes</h2>
 
 <div class="cards">
-
-<div class="card">
-<h3>200 MEGA</h3>
-<div class="price">R$ 99</div>
-<p>Instalação grátis<br>Wi-Fi incluso</p>
-<a class="btn">Assinar</a>
+<div class="card">"Internet muito rápida!"</div>
+<div class="card">"Melhor da região"</div>
+<div class="card">"Instalação super rápida"</div>
 </div>
 
-<div class="card">
-<div class="badge">MAIS CONTRATADO</div>
-<h3>400 MEGA</h3>
-<div class="price">R$ 129</div>
-<p>Melhor custo-benefício</p>
-<a class="btn">Assinar</a>
-</div>
-
-<div class="card">
-<h3>600 MEGA</h3>
-<div class="price">R$ 149</div>
-<a class="btn">Assinar</a>
-</div>
-
-<div class="card">
-<h3>800 MEGA</h3>
-<div class="price">R$ 179</div>
-<a class="btn">Assinar</a>
-</div>
-
-</div>
 </section>
 
-<a class="whatsapp" href="https://wa.me/5599999999999">💬</a>
+<div class="cta">
+<h2>Pronto para contratar?</h2>
+<p>Fale agora no WhatsApp</p>
+</div>
 
 <footer>
-<p>© 2026 Internet Fibra</p>
+<p>© 2025 Internet Fibra</p>
 </footer>
+
+</div>
 
 </body>
 </html>
