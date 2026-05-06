@@ -2,35 +2,58 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Orixinet PRO</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-<header>
-  <h1>🚀 Orixinet PRO</h1>
-  <p>Automatize pagamentos e acesso com PIX</p>
-  <button>Assinar agora</button>
-</header>
-
-<section class="benefits">
-  <h2>🔥 Por que usar?</h2>
-  <div class="cards">
-    <div>💳 Pagamento automático</div>
-    <div>🔐 Login seguro</div>
-    <div>⚡ Liberação instantânea</div>
+  <div class="hero">
+    <h1>💸 Ganhe dinheiro automático com PIX</h1>
+    <p>Venda acesso e libere automaticamente sem fazer nada</p>
+    <button onclick="comprar()">🚀 Começar agora</button>
   </div>
-</section>
 
-<section class="price">
-  <h2>💰 Plano PRO</h2>
-  <p>R$ 19,90/mês</p>
-  <button>Pagar com PIX</button>
-</section>
+  <div class="container">
 
-<footer>
-  <p>© 2026 Orixinet</p>
-</footer>
+    <section class="section">
+      <h2>🔥 Por que usar?</h2>
+      <div class="cards">
+        <div class="card">⚡ Liberação automática</div>
+        <div class="card">🔐 Login seguro</div>
+        <div class="card">💳 Pagamento via PIX</div>
+      </div>
+    </section>
 
+    <section class="section">
+      <h2>⚙️ Como funciona?</h2>
+      <div class="steps">
+        <div>1️⃣ Cliente paga</div>
+        <div>2️⃣ Sistema recebe webhook</div>
+        <div>3️⃣ Acesso liberado automático</div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>🧠 O que é o Orixinet PRO?</h2>
+      <p>
+        Um sistema que automatiza login e pagamentos via PIX. 
+        Ideal para vender acessos, planos VIP, conteúdos privados ou qualquer serviço online.
+      </p>
+    </section>
+
+    <section class="section destaque">
+      <h2>💰 Plano PRO</h2>
+      <p class="preco">R$ 19,90/mês</p>
+      <button onclick="comprar()">💳 Pagar com PIX</button>
+    </section>
+
+  </div>
+
+  <footer>
+    <p>© 2026 Orixinet</p>
+  </footer>
+
+  <script src="js/script.js"></script>
 </body>
 </html>
