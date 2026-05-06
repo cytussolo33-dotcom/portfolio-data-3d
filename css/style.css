@@ -1,39 +1,76 @@
 body {
-  font-family: Arial;
   margin: 0;
+  font-family: Arial, sans-serif;
   background: #0f172a;
   color: white;
+}
+
+.hero {
   text-align: center;
-}
-
-header {
   padding: 60px 20px;
-  background: linear-gradient(135deg, #6366f1, #22c55e);
+  background: linear-gradient(135deg, #4f46e5, #22c55e);
 }
 
-button {
+.hero h1 {
+  font-size: 28px;
+}
+
+.hero button {
+  margin-top: 20px;
+  padding: 15px 30px;
+  font-size: 18px;
   background: #22c55e;
   border: none;
-  padding: 15px 25px;
+  border-radius: 10px;
   color: white;
-  font-size: 16px;
-  border-radius: 8px;
-  cursor: pointer;
+}
+
+.container {
+  max-width: 900px;
+  margin: auto;
+  padding: 20px;
+}
+
+.section {
+  margin-top: 50px;
+  text-align: center;
 }
 
 .cards {
   display: flex;
+  gap: 10px;
   justify-content: center;
-  gap: 20px;
-  padding: 40px;
+  flex-wrap: wrap;
 }
 
-.cards div {
+.card {
+  background: #1e293b;
+  padding: 15px;
+  border-radius: 10px;
+}
+
+.steps div {
+  margin: 10px 0;
+}
+
+.destaque {
   background: #1e293b;
   padding: 20px;
   border-radius: 10px;
 }
 
-.price {
-  margin: 40px;
+.preco {
+  font-size: 24px;
+  margin: 10px 0;
+}
+
+button {
+  cursor: pointer;
+}
+
+footer {
+  text-align: center;
+  margin-top: 50px;
+  padding: 20px;
+  color: #94a3b8;
 }
