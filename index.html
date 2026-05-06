@@ -5,66 +5,213 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Orixinet</title>
 
-<link rel="stylesheet" href="style.css">
+<style>
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Arial;
+}
+
+body{
+background:#050705;
+color:white;
+}
+
+/* HEADER */
+header{
+display:flex;
+justify-content:space-between;
+padding:20px;
+background:#000;
+}
+
+.logo{
+color:#00ff88;
+font-weight:bold;
+font-size:20px;
+}
+
+.btn{
+background:#00ff88;
+padding:10px 20px;
+border-radius:8px;
+cursor:pointer;
+color:black;
+font-weight:bold;
+}
+
+/* HERO */
+.hero{
+display:flex;
+align-items:center;
+justify-content:space-between;
+padding:60px;
+flex-wrap:wrap;
+}
+
+.hero-text{
+max-width:500px;
+}
+
+.hero-text h1{
+font-size:42px;
+}
+
+.hero-text span{
+color:#00ff88;
+}
+
+.hero-text p{
+margin:20px 0;
+color:#ccc;
+}
+
+.btn-main{
+background:linear-gradient(90deg,#00ff88,#00cc66);
+padding:15px 25px;
+border:none;
+border-radius:10px;
+cursor:pointer;
+font-weight:bold;
+transition:0.3s;
+}
+
+.btn-main:hover{
+transform:scale(1.05);
+box-shadow:0 0 20px #00ff88;
+}
+
+/* IMAGEM ANIMADA */
+.hero-img img{
+width:400px;
+border-radius:20px;
+animation:float 3s ease-in-out infinite;
+box-shadow:0 0 30px rgba(0,255,136,0.3);
+}
+
+@keyframes float{
+0%{transform:translateY(0);}
+50%{transform:translateY(-15px);}
+100%{transform:translateY(0);}
+}
+
+/* PLANOS */
+.planos{
+padding:60px;
+text-align:center;
+}
+
+.cards{
+display:flex;
+justify-content:center;
+gap:20px;
+flex-wrap:wrap;
+margin-top:30px;
+}
+
+.card{
+background:#0d0f0d;
+padding:20px;
+border-radius:15px;
+width:200px;
+transition:0.3s;
+}
+
+.card:hover{
+transform:translateY(-10px);
+box-shadow:0 0 20px #00ff88;
+}
+
+.destaque{
+border:2px solid #00ff88;
+}
+
+.card button{
+margin-top:10px;
+padding:10px;
+width:100%;
+background:#00ff88;
+border:none;
+border-radius:8px;
+cursor:pointer;
+}
+
+/* FOOTER */
+footer{
+text-align:center;
+padding:20px;
+background:#000;
+margin-top:40px;
+}
+</style>
+
 </head>
 
 <body>
 
 <header>
-  <h1>ORIXINET</h1>
-  <a onclick="whatsapp()" class="btn">WhatsApp</a>
+<div class="logo">ORIXINET</div>
+<div class="btn" onclick="whatsapp()">WhatsApp</div>
 </header>
 
 <section class="hero">
-  <div class="hero-text">
-    <span class="tag">INTERNET FIBRA ÓPTICA</span>
-    <h2>INTERNET RÁPIDA,<br>ESTÁVEL E <span>SEM DOR DE CABEÇA!</span></h2>
-    <p>Conexão 100% fibra óptica para você jogar, trabalhar e estudar.</p>
-    
-    <button onclick="whatsapp()" class="btn-main">
-      QUERO CONTRATAR
-    </button>
-  </div>
 
-  <div class="hero-img">
-    <img src="https://images.unsplash.com/photo-1605902711622-cfb43c44367f">
-  </div>
+<div class="hero-text">
+<h1>INTERNET RÁPIDA,<br>ESTÁVEL E <span>SEM DOR DE CABEÇA!</span></h1>
+
+<p>Conexão fibra óptica para você jogar, trabalhar e assistir sem travar.</p>
+
+<button class="btn-main" onclick="whatsapp()">QUERO CONTRATAR</button>
+</div>
+
+<div class="hero-img">
+<img src="https://images.unsplash.com/photo-1605902711622-cfb43c44367f">
+</div>
+
 </section>
 
 <section class="planos">
-  <h2>PLANOS</h2>
+<h2>PLANOS</h2>
 
-  <div class="cards">
-    <div class="card">
-      <h3>200 MEGA</h3>
-      <p>R$ 99,90</p>
-      <button onclick="whatsapp()">ASSINAR</button>
-    </div>
+<div class="cards">
 
-    <div class="card destaque">
-      <h3>400 MEGA</h3>
-      <p>R$ 129,90</p>
-      <button onclick="whatsapp()">ASSINAR</button>
-    </div>
+<div class="card">
+<h3>200 MEGA</h3>
+<p>R$ 99,90</p>
+<button onclick="whatsapp()">ASSINAR</button>
+</div>
 
-    <div class="card">
-      <h3>600 MEGA</h3>
-      <p>R$ 149,90</p>
-      <button onclick="whatsapp()">ASSINAR</button>
-    </div>
+<div class="card destaque">
+<h3>400 MEGA</h3>
+<p>R$ 129,90</p>
+<button onclick="whatsapp()">ASSINAR</button>
+</div>
 
-    <div class="card">
-      <h3>800 MEGA</h3>
-      <p>R$ 179,90</p>
-      <button onclick="whatsapp()">ASSINAR</button>
-    </div>
-  </div>
+<div class="card">
+<h3>600 MEGA</h3>
+<p>R$ 149,90</p>
+<button onclick="whatsapp()">ASSINAR</button>
+</div>
+
+<div class="card">
+<h3>800 MEGA</h3>
+<p>R$ 179,90</p>
+<button onclick="whatsapp()">ASSINAR</button>
+</div>
+
+</div>
 </section>
 
 <footer>
-  <p>© 2026 Orixinet</p>
+<p>© 2026 Orixinet</p>
 </footer>
 
-<script src="script.js"></script>
+<script>
+function whatsapp(){
+window.open("https://wa.me/5597991637187","_blank");
+}
+</script>
+
 </body>
 </html>
