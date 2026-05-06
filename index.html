@@ -1,315 +1,70 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Orixinet Telecom</title>
+<title>Orixinet</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-
-<style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Poppins}
-
-body{
-background:#050805;
-color:#fff;
-}
-
-html{scroll-behavior:smooth}
-
-/* HEADER */
-header{
-display:flex;
-justify-content:space-between;
-align-items:center;
-padding:20px 40px;
-position:fixed;
-width:100%;
-background:rgba(0,0,0,0.8);
-backdrop-filter:blur(10px);
-z-index:1000;
-}
-
-.logo{
-color:#7CFF00;
-font-weight:700;
-font-size:22px;
-}
-
-nav a{
-margin:0 15px;
-color:#fff;
-text-decoration:none;
-}
-
-.btn{
-background:linear-gradient(45deg,#7CFF00,#00ff88);
-padding:10px 20px;
-border-radius:8px;
-color:#000;
-font-weight:bold;
-text-decoration:none;
-transition:.3s;
-}
-
-.btn:hover{transform:scale(1.05)}
-
-/* HERO */
-.hero{
-height:100vh;
-display:flex;
-align-items:center;
-padding:80px;
-background:
-radial-gradient(circle at right,#0f2f1c,transparent),
-linear-gradient(#000,#000);
-}
-
-.hero h1{
-font-size:50px;
-line-height:1.2;
-}
-
-.hero span{color:#7CFF00}
-
-.hero p{
-margin:20px 0;
-color:#aaa;
-}
-
-/* BENEFÍCIOS */
-.benefits{
-display:flex;
-justify-content:center;
-gap:30px;
-padding:30px;
-flex-wrap:wrap;
-}
-
-.benefit{
-background:#0c140f;
-padding:20px;
-border-radius:10px;
-border:1px solid #1c2b22;
-}
-
-/* PLANOS */
-.planos{
-padding:60px 20px;
-text-align:center;
-}
-
-.cards{
-display:flex;
-gap:20px;
-justify-content:center;
-flex-wrap:wrap;
-margin-top:40px;
-}
-
-.card{
-background:#0c140f;
-padding:25px;
-border-radius:15px;
-width:240px;
-border:1px solid #1c2b22;
-transition:.3s;
-position:relative;
-}
-
-.card:hover{
-transform:translateY(-10px);
-border-color:#7CFF00;
-}
-
-.popular{
-border:2px solid #7CFF00;
-}
-
-.popular::before{
-content:"MAIS CONTRATADO";
-position:absolute;
-top:-12px;
-left:50%;
-transform:translateX(-50%);
-background:#7CFF00;
-color:#000;
-padding:5px 10px;
-font-size:12px;
-border-radius:5px;
-}
-
-.card h2{color:#7CFF00}
-.card p{margin:10px 0}
-
-.card ul{
-text-align:left;
-margin-top:10px;
-}
-
-.card ul li{
-font-size:14px;
-margin:5px 0;
-}
-
-/* PROMO */
-.promo{
-margin:50px;
-padding:40px;
-background:linear-gradient(45deg,#0f2f1c,#071a0c);
-border-radius:15px;
-display:flex;
-justify-content:space-between;
-align-items:center;
-flex-wrap:wrap;
-}
-
-/* TESTEMUNHOS */
-.testimonials{
-padding:50px;
-text-align:center;
-}
-
-.testimonials .cards{
-margin-top:30px;
-}
-
-.testimonial{
-background:#0c140f;
-padding:20px;
-border-radius:10px;
-width:250px;
-}
-
-/* WHATS */
-.whatsapp{
-position:fixed;
-bottom:20px;
-right:20px;
-background:#25D366;
-padding:15px;
-border-radius:50%;
-text-decoration:none;
-font-size:22px;
-}
-
-/* FOOTER */
-footer{
-padding:40px;
-background:#000;
-text-align:center;
-color:#aaa;
-}
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
 <header>
-<div class="logo">ORIXINET</div>
-
-<nav>
-<a href="#inicio">Início</a>
-<a href="#planos">Planos</a>
-<a href="#contato">Contato</a>
-</nav>
-
-<a class="btn" href="https://wa.me/5533999999999" target="_blank">WhatsApp</a>
+  <h1>ORIXINET</h1>
+  <a onclick="whatsapp()" class="btn">WhatsApp</a>
 </header>
 
-<section class="hero" id="inicio">
-<div>
-<h1>INTERNET RÁPIDA,<br>ESTÁVEL E <span>SEM DOR DE CABEÇA!</span></h1>
-<p>Conexão 100% fibra óptica para você jogar, trabalhar e estudar.</p>
-<a href="#planos" class="btn">QUERO CONTRATAR</a>
-</div>
+<section class="hero">
+  <div class="hero-text">
+    <span class="tag">INTERNET FIBRA ÓPTICA</span>
+    <h2>INTERNET RÁPIDA,<br>ESTÁVEL E <span>SEM DOR DE CABEÇA!</span></h2>
+    <p>Conexão 100% fibra óptica para você jogar, trabalhar e estudar.</p>
+    
+    <button onclick="whatsapp()" class="btn-main">
+      QUERO CONTRATAR
+    </button>
+  </div>
+
+  <div class="hero-img">
+    <img src="https://images.unsplash.com/photo-1605902711622-cfb43c44367f">
+  </div>
 </section>
 
-<section class="benefits">
-<div class="benefit">🚀 Instalação rápida</div>
-<div class="benefit">🎧 Suporte especializado</div>
-<div class="benefit">📶 Wi-Fi 5G incluso</div>
+<section class="planos">
+  <h2>PLANOS</h2>
+
+  <div class="cards">
+    <div class="card">
+      <h3>200 MEGA</h3>
+      <p>R$ 99,90</p>
+      <button onclick="whatsapp()">ASSINAR</button>
+    </div>
+
+    <div class="card destaque">
+      <h3>400 MEGA</h3>
+      <p>R$ 129,90</p>
+      <button onclick="whatsapp()">ASSINAR</button>
+    </div>
+
+    <div class="card">
+      <h3>600 MEGA</h3>
+      <p>R$ 149,90</p>
+      <button onclick="whatsapp()">ASSINAR</button>
+    </div>
+
+    <div class="card">
+      <h3>800 MEGA</h3>
+      <p>R$ 179,90</p>
+      <button onclick="whatsapp()">ASSINAR</button>
+    </div>
+  </div>
 </section>
 
-<section class="planos" id="planos">
-<h2>PLANOS QUE CABEM NO SEU BOLSO</h2>
-
-<div class="cards">
-
-<div class="card">
-<h2>200 MEGA</h2>
-<p>R$ 99,90/mês</p>
-<ul>
-<li>✔ Fibra óptica</li>
-<li>✔ Wi-Fi incluso</li>
-<li>✔ Suporte</li>
-</ul>
-<a class="btn" href="https://wa.me/5533999999999?text=Quero%20200MB">ASSINAR</a>
-</div>
-
-<div class="card popular">
-<h2>400 MEGA</h2>
-<p>R$ 129,90/mês</p>
-<ul>
-<li>✔ Fibra óptica</li>
-<li>✔ Wi-Fi incluso</li>
-<li>✔ Suporte premium</li>
-</ul>
-<a class="btn" href="https://wa.me/5533999999999?text=Quero%20400MB">ASSINAR</a>
-</div>
-
-<div class="card">
-<h2>600 MEGA</h2>
-<p>R$ 149,90/mês</p>
-<ul>
-<li>✔ Fibra óptica</li>
-<li>✔ Wi-Fi incluso</li>
-<li>✔ Alta velocidade</li>
-</ul>
-<a class="btn" href="https://wa.me/5533999999999?text=Quero%20600MB">ASSINAR</a>
-</div>
-
-<div class="card">
-<h2>800 MEGA</h2>
-<p>R$ 179,90/mês</p>
-<ul>
-<li>✔ Fibra óptica</li>
-<li>✔ Máxima velocidade</li>
-<li>✔ Suporte total</li>
-</ul>
-<a class="btn" href="https://wa.me/5533999999999?text=Quero%20800MB">ASSINAR</a>
-</div>
-
-</div>
-</section>
-
-<section class="promo">
-<div>
-<h2>🔥 INSTALAÇÃO GRÁTIS + WI-FI 5G</h2>
-<p>Promoção por tempo limitado</p>
-</div>
-
-<a class="btn" href="https://wa.me/5533999999999">QUERO APROVEITAR</a>
-</section>
-
-<section class="testimonials">
-<h2>O QUE NOSSOS CLIENTES DIZEM</h2>
-
-<div class="cards">
-
-<div class="testimonial">⭐⭐⭐⭐⭐<br>Internet muito rápida!</div>
-<div class="testimonial">⭐⭐⭐⭐⭐<br>Melhor custo benefício</div>
-<div class="testimonial">⭐⭐⭐⭐⭐<br>Instalação super rápida</div>
-
-</div>
-</section>
-
-<footer id="contato">
-<p>📞 (33) 99999-9999</p>
-<p>© 2025 Orixinet Telecom</p>
+<footer>
+  <p>© 2026 Orixinet</p>
 </footer>
 
-<a class="whatsapp" href="https://wa.me/5533999999999">💬</a>
-
+<script src="script.js"></script>
 </body>
 </html>
