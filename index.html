@@ -1,229 +1,36 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Orixinet</title>
-
-<style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Arial}
-body{background:#050705;color:#fff;overflow-x:hidden}
-
-/* FUNDO ANIMADO */
-canvas{
-position:fixed;
-top:0;
-left:0;
-z-index:-1;
-}
-
-/* HEADER */
-header{
-display:flex;
-justify-content:space-between;
-padding:20px;
-background:#000;
-}
-
-.logo{color:#00ff88;font-weight:bold}
-.btn{background:#00ff88;padding:10px 20px;border-radius:8px;color:#000;cursor:pointer}
-
-/* HERO */
-.hero{
-display:flex;
-justify-content:space-between;
-align-items:center;
-padding:60px;
-flex-wrap:wrap;
-}
-
-.hero h1{font-size:42px}
-.hero span{color:#00ff88}
-
-.hero-img img{
-width:400px;
-border-radius:20px;
-animation:float 3s infinite;
-}
-
-@keyframes float{
-0%{transform:translateY(0)}
-50%{transform:translateY(-15px)}
-100%{transform:translateY(0)}
-}
-
-/* PLANOS */
-.planos{text-align:center;padding:60px}
-
-.cards{
-display:flex;
-gap:20px;
-justify-content:center;
-flex-wrap:wrap;
-margin-top:30px;
-}
-
-.card{
-background:#111;
-padding:20px;
-border-radius:10px;
-transition:.3s;
-}
-
-.card:hover{
-transform:translateY(-10px);
-box-shadow:0 0 20px #00ff88;
-}
-
-.card button{
-margin-top:10px;
-padding:10px;
-background:#00ff88;
-border:none;
-cursor:pointer;
-}
-
-/* CONTADOR */
-.counter{
-text-align:center;
-padding:40px;
-font-size:28px;
-color:#00ff88;
-}
-
-/* ANIMAÇÃO SCROLL */
-.fade{
-opacity:0;
-transform:translateY(20px);
-transition:1s;
-}
-
-.fade.show{
-opacity:1;
-transform:translateY(0);
-}
-
-footer{
-text-align:center;
-padding:20px;
-background:#000;
-}
-</style>
+  <meta charset="UTF-8">
+  <title>Orixinet PRO</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
-
 <body>
 
-<canvas id="bg"></canvas>
-
 <header>
-<div class="logo">ORIXINET</div>
-<div class="btn" onclick="whatsapp()">WhatsApp</div>
+  <h1>🚀 Orixinet PRO</h1>
+  <p>Automatize pagamentos e acesso com PIX</p>
+  <button>Assinar agora</button>
 </header>
 
-<section class="hero fade">
-<div>
-<h1>INTERNET RÁPIDA,<br>ESTÁVEL E <span>SEM DOR DE CABEÇA</span></h1>
-<p>Fibra óptica para sua casa</p>
-<button class="btn" onclick="whatsapp()">CONTRATAR</button>
-</div>
-
-<div class="hero-img">
-<img src="https://images.unsplash.com/photo-1605902711622-cfb43c44367f">
-</div>
+<section class="benefits">
+  <h2>🔥 Por que usar?</h2>
+  <div class="cards">
+    <div>💳 Pagamento automático</div>
+    <div>🔐 Login seguro</div>
+    <div>⚡ Liberação instantânea</div>
+  </div>
 </section>
 
-<div class="counter fade">
-+ <span id="clientes">0</span> clientes satisfeitos
-</div>
-
-<section class="planos fade">
-<h2>PLANOS</h2>
-
-<div class="cards">
-
-<div class="card">
-<h3>200MB</h3>
-<p>R$ 99</p>
-<button onclick="whatsapp()">ASSINAR</button>
-</div>
-
-<div class="card">
-<h3>400MB</h3>
-<p>R$ 129</p>
-<button onclick="whatsapp()">ASSINAR</button>
-</div>
-
-<div class="card">
-<h3>600MB</h3>
-<p>R$ 149</p>
-<button onclick="whatsapp()">ASSINAR</button>
-</div>
-
-</div>
+<section class="price">
+  <h2>💰 Plano PRO</h2>
+  <p>R$ 19,90/mês</p>
+  <button>Pagar com PIX</button>
 </section>
 
 <footer>
-© 2026 Orixinet
+  <p>© 2026 Orixinet</p>
 </footer>
-
-<script>
-function whatsapp(){
-window.open("https://wa.me/5597991637187","_blank");
-}
-
-/* PARTICULAS */
-const canvas=document.getElementById("bg");
-const ctx=canvas.getContext("2d");
-canvas.width=window.innerWidth;
-canvas.height=window.innerHeight;
-
-let particles=[];
-for(let i=0;i<80;i++){
-particles.push({
-x:Math.random()*canvas.width,
-y:Math.random()*canvas.height,
-r:Math.random()*2
-});
-}
-
-function draw(){
-ctx.clearRect(0,0,canvas.width,canvas.height);
-particles.forEach(p=>{
-ctx.beginPath();
-ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-ctx.fillStyle="#00ff88";
-ctx.fill();
-p.y+=0.3;
-if(p.y>canvas.height)p.y=0;
-});
-requestAnimationFrame(draw);
-}
-draw();
-
-/* CONTADOR */
-let count=0;
-let el=document.getElementById("clientes");
-
-let interval=setInterval(()=>{
-count+=10;
-el.innerText=count;
-if(count>=1000)clearInterval(interval);
-},20);
-
-/* ANIMAÇÃO SCROLL */
-let fades=document.querySelectorAll(".fade");
-
-function show(){
-fades.forEach(el=>{
-let top=el.getBoundingClientRect().top;
-if(top<window.innerHeight-50){
-el.classList.add("show");
-}
-});
-}
-window.addEventListener("scroll",show);
-show();
-</script>
 
 </body>
 </html>
